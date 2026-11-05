@@ -1,0 +1,136 @@
+/* src/styles/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:   #02030a;
+  --deep:    #080b18;
+  --surface: rgba(255,255,255,0.04);
+  --surf2:   rgba(255,255,255,0.08);
+  --border:  rgba(255,255,255,0.1);
+  --border2: rgba(255,255,255,0.18);
+  --text:    #e8eeff;
+  --text2:   #8891bb;
+  --accent:  #7c3aed;
+  --accent2: #a855f7;
+  --cyan:    #06b6d4;
+  --pink:    #ec4899;
+  --gold:    #f59e0b;
+  --vert:    #00e676;
+  --or:      #ffd940;
+  --glow-v:  rgba(124,58,237,0.4);
+  --glow-c:  rgba(6,182,212,0.3);
+}
+html{scroll-behavior:smooth}
+body{
+  background:var(--black);
+  color:var(--text);
+  font-family:'Exo 2',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#root{position:relative;z-index:1;min-height:100vh}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--deep)}
+::-webkit-scrollbar-thumb{background:var(--accent);border-radius:2px}
+
+@keyframes nebula1{from{transform:translate(0,0) scale(1)} to{transform:translate(40px,30px) scale(1.15)}}
+@keyframes nebula2{from{transform:translate(0,0) scale(1)} to{transform:translate(-30px,-40px) scale(1.1)}}
+@keyframes nebula3{from{transform:translate(0,0) rotate(0deg)} to{transform:translate(20px,-20px) rotate(20deg)}}
+@keyframes float{0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)}}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 20px var(--glow-v)} 50%{box-shadow:0 0 40px var(--glow-v),0 0 80px rgba(124,58,237,0.2)}}
+@keyframes rotate-slow{from{transform:rotate(0deg)} to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0} to{opacity:1}}
+@keyframes shimmer{0%{background-position:-200% center} 100%{background-position:200% center}}
+@keyframes orbit{from{transform:rotate(0deg) translateX(80px) rotate(0deg)} to{transform:rotate(360deg) translateX(80px) rotate(-360deg)}}
+@keyframes scanline{0%{top:-10%} 100%{top:110%}}
+
+.scanline::after{
+  content:'';position:absolute;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,rgba(124,58,237,0.4),transparent);
+  animation:scanline 4s linear infinite;pointer-events:none;
+}
+
+.glow-text{
+  background:linear-gradient(135deg,#fff 0%,var(--accent2) 40%,var(--cyan) 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shimmer 4s linear infinite;
+}
+.glow-text-gold{
+  background:linear-gradient(135deg,var(--gold),#fff,var(--gold));
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shimmer 3s linear infinite;
+}
+
+.glass-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:16px;
+  backdrop-filter:blur(12px);
+  transition:all 0.3s;
+  position:relative;
+  overflow:hidden;
+}
+.glass-card::before{
+  content:'';position:absolute;inset:0;border-radius:16px;
+  background:linear-gradient(135deg,rgba(124,58,237,0.08),transparent,rgba(6,182,212,0.05));
+  opacity:0;transition:opacity 0.3s;pointer-events:none;
+}
+.glass-card:hover{border-color:var(--border2);transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.4),0 0 30px var(--glow-v)}
+.glass-card:hover::before{opacity:1}
+
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 32px;border:none;border-radius:50px;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--cyan));
+  color:#fff;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;
+  text-transform:uppercase;transition:all 0.3s;position:relative;overflow:hidden;
+  box-shadow:0 0 25px var(--glow-v);
+}
+.btn-primary::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);pointer-events:none}
+.btn-primary:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 0 40px var(--glow-v),0 10px 30px rgba(0,0,0,0.3)}
+.btn-outline{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 28px;border:1px solid var(--border2);border-radius:50px;cursor:pointer;
+  background:transparent;color:var(--text);
+  font-family:'Orbitron',sans-serif;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  transition:all 0.3s;
+}
+.btn-outline:hover{border-color:var(--accent2);color:var(--accent2);box-shadow:0 0 20px var(--glow-v);background:rgba(124,58,237,0.1)}
+
+.nav-link{
+  font-family:'Orbitron',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;
+  text-transform:uppercase;color:var(--text2);cursor:pointer;
+  transition:all 0.3s;padding:8px 0;position:relative;
+}
+.nav-link::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--accent),var(--cyan));transform:scaleX(0);transition:transform 0.3s}
+.nav-link:hover,.nav-link.active{color:var(--text)}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1)}
+
+.section-tag{
+  display:inline-block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--cyan);border:1px solid rgba(6,182,212,0.3);
+  padding:5px 14px;border-radius:20px;background:rgba(6,182,212,0.08);margin-bottom:16px;
+}
+.section-title{font-family:'Orbitron',sans-serif;font-size:clamp(28px,4vw,48px);font-weight:700;line-height:1.2;margin-bottom:16px}
+
+.input-field{
+  width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px 18px;color:var(--text);font-family:'Exo 2',sans-serif;font-size:15px;outline:none;
+  transition:border-color 0.3s;
+}
+.input-field:focus{border-color:rgba(124,58,237,0.6);box-shadow:0 0 0 3px rgba(124,58,237,0.1)}
+.input-field::placeholder{color:var(--text2)}
+textarea.input-field{resize:vertical;min-height:120px}
+
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);margin:24px 0}
+.mono{font-family:'Space Mono',monospace}
+
+@media(max-width:768px){
+  .hide-mobile{display:none!important}
+  .full-mobile{width:100%!important}
+}

@@ -1,0 +1,235 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── UTILISATEURS (Admin + Fans) ───
+model User {
+  id           String   @id @default(uuid())
+  email        String?  @unique  // ✅ AJOUT DU "?" ICI pour le rendre optionnel
+  telephone    String?  @unique  
+  password     String
+  nom          String?
+  role         Role     @default(USER)
+  avatarUrl    String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  achats       Achat[]
+  tickets      Ticket[]
+  favoris      Favori[]
+  playlists    Playlist[]
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+// ─── ARTISTES ───
+model Artiste {
+  id        Int      @id @default(autoincrement())
+  nom       String
+  genre     String
+  genre2    String?
+  pays      String   @default("🇨🇮")
+  bio       String
+  img       String   @default("🎵")
+  streams   String   @default("0")
+  tracks    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  telephone String?
+ paiements PaiementArtiste[]
+  morceaux Morceau[]
+  albums   Album[]
+}
+
+// ─── ALBUMS ───
+model Album {
+  id          Int       @id @default(autoincrement())
+  titre       String
+  artisteId   Int
+  artiste     Artiste   @relation(fields: [artisteId], references: [id], onDelete: Cascade)
+  annee       Int
+  genre       String?
+  description String?
+  coverUrl    String?
+  coverEmoji  String    @default("💿")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // ✅ CHAMPS POUR L'ACHAT D'ALBUM
+  isPayant    Boolean   @default(false)
+  prix        Int?
+  dureeAcces  Int?
+
+  morceaux Morceau[]
+  achats   Achat[]
+}
+
+// ─── MORCEAUX ───
+model Morceau {
+  id          Int       @id @default(autoincrement())
+  titre       String
+  artisteId   Int
+  artiste     Artiste   @relation(fields: [artisteId], references: [id], onDelete: Cascade)
+  albumId     Int?
+  album       Album?    @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  duree       String?
+  genre       String?
+  annee       Int
+  streams     Int       @default(0)
+  audioUrl    String?
+  coverUrl    String?
+  isPayant    Boolean   @default(false)
+  prix        Int?
+  dureeAcces  Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  achats        Achat[]
+  favoris       Favori[]
+  dansPlaylists PlaylistMorceau[] 
+}
+
+// ─── ÉVÉNEMENTS ───
+model Evenement {
+  id             Int               @id @default(autoincrement())
+  titre          String
+  type           String            @default("concert")
+  date           DateTime
+  heure          String            @default("20:00")
+  lieu           String
+  pays           String            @default("🇨🇮")
+  prix           Int
+  places         Int               @default(100)
+  description    String?
+  coverUrl       String?
+  coverEmoji     String            @default("🎤")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  tickets          Ticket[]
+  categorieTickets CategorieTicket[]
+}
+
+// ─── ACHATS (✅ CORRIGÉ : morceauId et morceau sont maintenant OPTIONNELS) ───
+model Achat {
+  id          Int       @id @default(autoincrement())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // ✅ LES "?" SONT CRUCIAUX ICI
+  morceauId   Int?
+  morceau     Morceau?  @relation(fields: [morceauId], references: [id], onDelete: Cascade)
+  
+  albumId     Int?
+  album       Album?    @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  
+  prixPaye    Int
+  dateAchat   DateTime  @default(now())
+  expiration  DateTime?
+  actif       Boolean   @default(true)
+}
+
+// ─── CATÉGORIES DE TICKETS ───
+model CategorieTicket {
+  id            Int       @id @default(autoincrement())
+  nom           String
+  prix          Int
+  placesTotales Int
+  placesVendues Int       @default(0)
+  evenementId   Int
+  evenement     Evenement @relation(fields: [evenementId], references: [id], onDelete: Cascade)
+  tickets       Ticket[]
+}
+
+// ─── TICKETS D'ÉVÉNEMENTS ───
+model Ticket {
+  id              Int              @id @default(autoincrement())
+  codeUnique      String           @unique
+  prixPaye        Int
+  dateAchat       DateTime         @default(now())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evenementId     Int
+  evenement       Evenement        @relation(fields: [evenementId], references: [id], onDelete: Cascade)
+  
+  categorieId     Int?
+  categorie       CategorieTicket? @relation(fields: [categorieId], references: [id], onDelete: SetNull)
+  transactionId   String?
+  utilise         Boolean          @default(false)
+  dateUtilisation DateTime?
+}
+
+// ─── MESSAGES DE CONTACT ───
+model Message {
+  id        Int      @id @default(autoincrement())
+  nom       String
+  email     String
+  sujet     String?
+  message   String
+  lu        Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ─── FAVORIS ───
+model Favori {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  morceauId Int
+  morceau   Morceau  @relation(fields: [morceauId], references: [id], onDelete: Cascade)
+  dateAjout DateTime @default(now())
+
+  @@unique([userId, morceauId])
+}
+
+// ─── PLAYLISTS ───
+model Playlist {
+  id           Int               @id @default(autoincrement())
+  nom          String
+  description  String?
+  image        String?
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dateCreation DateTime          @default(now())
+  morceaux     PlaylistMorceau[]
+}
+
+model PlaylistMorceau {
+  id         Int      @id @default(autoincrement())
+  playlistId Int
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  morceauId  Int
+  morceau    Morceau  @relation(fields: [morceauId], references: [id], onDelete: Cascade)
+  ordre      Int      @default(0)
+
+  @@unique([playlistId, morceauId])
+}
+model PaiementArtiste {
+  id        Int      @id @default(autoincrement())
+  artisteId Int
+  artiste   Artiste  @relation(fields: [artisteId], references: [id], onDelete: Cascade)
+  montant   Float
+  mois      String   // Format: "2023-10" (Année-Mois) pour savoir si c'est le mois en cours
+  date      DateTime @default(now())
+  statut    String   @default("PAYÉ") // PAYÉ, EN_ATTENTE, etc.
+}
+model Actualite {
+  id          Int      @id @default(autoincrement())
+  titre       String
+  description String?
+  imageUrl    String?
+  lien        String?
+  ordre       Int      @default(0)
+  actif       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

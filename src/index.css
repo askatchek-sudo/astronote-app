@@ -1,0 +1,336 @@
+/* ==========================================================
+   🌌 ASTRONOTE — STYLES GLOBAUX
+   ========================================================== */
+
+/* ──────────────────────────────────────────────────────────
+   🎨 VARIABLES CSS — THÈME SOMBRE (par défaut)
+   ────────────────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg-main: #080b18;
+  --bg-nav: rgba(8, 11, 24, 0.85);
+  --bg-elevated: rgba(8, 11, 24, 0.98);
+  --bg-card: rgba(255, 255, 255, 0.05);
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-inner: rgba(0, 0, 0, 0.3);
+
+  /* Textes */
+  --text: #ffffff;
+  --text2: #94a3b8;
+
+  /* Bordures */
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Accents (palette spatiale) */
+  --accent: #7c3aed;
+  --accent2: #a78bfa;
+  --cyan: #06b6d4;
+  --pink: #ec4899;
+  --gold: #f59e0b;
+  --vert: #00e676;
+
+  /* Effets lumineux */
+  --glow-v: rgba(124, 58, 237, 0.4);
+  --glow-c: rgba(6, 182, 212, 0.4);
+
+  /* Ombres */
+  --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --space-opacity: 1;
+
+  /* Typographie */
+  --sans: 'Exo 2', system-ui, sans-serif;
+  --heading: 'Orbitron', system-ui, sans-serif;
+  --mono: 'Space Mono', ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+/* ──────────────────────────────────────────────────────────
+   ☀️ VARIABLES CSS — THÈME CLAIR
+   ────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  /* Surfaces */
+  --bg-main: #f4f6fc;
+  --bg-nav: rgba(255, 255, 255, 0.85);
+  --bg-elevated: rgba(255, 255, 255, 0.96);
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-input: rgba(15, 23, 42, 0.05);
+  --bg-hover: rgba(15, 23, 42, 0.06);
+  --bg-inner: rgba(15, 23, 42, 0.05);
+
+  /* Textes */
+  --text: #0b1020;
+  --text2: #5a6478;
+
+  /* Bordures */
+  --border: rgba(15, 23, 42, 0.12);
+
+  /* Accents (assombris pour rester lisibles sur fond clair) */
+  --accent: #6d28d9;
+  --accent2: #7c3aed;
+  --cyan: #0891b2;
+  --pink: #db2777;
+  --gold: #b45309;
+  --vert: #047857;
+
+  /* Effets lumineux */
+  --glow-v: rgba(124, 58, 237, 0.25);
+  --glow-c: rgba(6, 182, 212, 0.25);
+
+  /* Ombres */
+  --card-shadow: 0 8px 28px rgba(15, 23, 42, 0.10);
+  --space-opacity: 0.10;
+
+  color-scheme: light;
+}
+
+/* ──────────────────────────────────────────────────────────
+   🌐 RESET & BASE
+   ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-main);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ──────────────────────────────────────────────────────────
+   🌌 FOND SPATIAL (estompé en mode clair)
+   ────────────────────────────────────────────────────────── */
+.space-bg {
+  opacity: var(--space-opacity);
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────────────────
+   💎 GLASSMORPHISM — CARTES
+   ────────────────────────────────────────────────────────── */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: background 0.35s ease, border-color 0.35s ease,
+              box-shadow 0.35s ease, transform 0.2s ease;
+}
+
+[data-theme="light"] .glass-card {
+  background: var(--bg-card);
+}
+
+/* ──────────────────────────────────────────────────────────
+   🔘 BOUTONS
+   ────────────────────────────────────────────────────────── */
+.btn-primary {
+  padding: 12px 28px;
+  background: linear-gradient(135deg, var(--accent), var(--cyan));
+  border: none;
+  border-radius: 50px;
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 20px var(--glow-v);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px var(--glow-v);
+}
+
+.btn-outline {
+  padding: 12px 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 50px;
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-outline:hover {
+  border-color: var(--accent);
+  color: var(--accent2);
+  background: rgba(124, 58, 237, 0.08);
+}
+
+/* ──────────────────────────────────────────────────────────
+   ✨ EFFETS LUMINEUX & TYPOGRAPHIE
+   ────────────────────────────────────────────────────────── */
+.glow-text {
+  background: linear-gradient(135deg, var(--accent2), var(--cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px var(--glow-v));
+}
+
+.glow-text-gold {
+  background: linear-gradient(135deg, var(--gold), #fbbf24);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.4));
+}
+
+.section-tag {
+  display: inline-block;
+  padding: 6px 16px;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: 50px;
+  color: var(--accent2);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: var(--heading);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  color: var(--text);
+  margin: 0 0 16px;
+}
+
+/* ──────────────────────────────────────────────────────────
+   🎬 ANIMATIONS
+   ────────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+@keyframes orbit {
+  from {
+    transform: rotate(0deg) translateX(300px) rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg) translateX(300px) rotate(-360deg);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.4)); }
+  50% { filter: drop-shadow(0 0 30px rgba(6, 182, 212, 0.9)); }
+}
+
+@keyframes floatSpace {
+  0% { transform: translateY(0px) rotate(-5deg); }
+  50% { transform: translateY(-30px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(-5deg); }
+}
+
+@keyframes scanline {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 100%; }
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ──────────────────────────────────────────────────────────
+   🖼️ LOGO ASTRONOTE
+   ────────────────────────────────────────────────────────── */
+.logo-img {
+  filter: drop-shadow(0 0 30px rgba(124, 58, 237, 0.6))
+          brightness(0) invert(1) sepia(1) saturate(5) hue-rotate(180deg);
+}
+[data-theme="light"] .logo-img {
+  filter: drop-shadow(0 4px 18px rgba(124, 58, 237, 0.35));
+}
+
+/* ──────────────────────────────────────────────────────────
+   📝 FORMULAIRES — ADAPTATION MODE CLAIR
+   ────────────────────────────────────────────────────────── */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: var(--bg-input) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+[data-theme="light"] ::placeholder {
+  color: var(--text2) !important;
+  opacity: 0.75;
+}
+
+/* ──────────────────────────────────────────────────────────
+   📜 SCROLLBAR
+   ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(124, 58, 237, 0.3);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 58, 237, 0.5);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #e8eaf2;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c3c8d8;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #a8b0c0;
+}
+
+/* ──────────────────────────────────────────────────────────
+   📱 RESPONSIVE
+   ────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  html {
+    font-size: 16px;
+  }
+}

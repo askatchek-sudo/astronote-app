@@ -1,0 +1,50 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Variables d'environnement (NE JAMAIS POUSSER ÇA)
+.env
+.env.local
+.env.production
+
+# Dépendances
+node_modules/
+
+# Fichiers de build (générés automatiquement)
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Éditeurs de code
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# (Optionnel) Dossier d'upload local si tu en as encore un
+uploads/
