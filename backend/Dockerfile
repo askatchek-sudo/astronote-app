@@ -1,23 +1,21 @@
-# Utiliser une image Node.js légère et stable
 FROM node:20-alpine
 
-# Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Copier les fichiers de dépendances d'abord (pour optimiser le cache Docker)
+# Copier les fichiers de dépendances
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Installer les dépendances de production uniquement
-RUN npm install --omit=dev
+# Installer les dépendances en IGNORANT les packages optionnels spécifiques à une plateforme (comme lightningcss-win32)
+RUN npm install --omit=dev --no-optional
 
-# Générer le client Prisma (indispensable pour que la BDD fonctionne)
+# Générer le client Prisma (indispensable)
 RUN npx prisma generate
 
 # Copier le reste du code source
 COPY . .
 
-# Exposer le port (Fly.io utilise souvent le 8080, mais notre code utilisera process.env.PORT)
+# Exposer le port
 EXPOSE 8080
 
 # Commande pour démarrer le serveur
