@@ -8,6 +8,16 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 8080;
 
+// ─── 🔍 DIAGNOSTIC VARIABLES (pour les logs Fly.io) ───
+const requiredVars = ['DATABASE_URL','JWT_SECRET','CLOUDINARY_CLOUD_NAME','CLOUDINARY_API_KEY','CLOUDINARY_API_SECRET','CAMERPAY_API_TOKEN','CAMERPAY_HMAC_SECRET'];
+const missing = requiredVars.filter(v => !process.env[v]);
+if (missing.length) {
+  console.warn('⚠️ VARIABLES MANQUANTES:', missing.join(', '));
+} else {
+  console.log('✅ Toutes les variables critiques sont présentes');
+}
+console.log(`🔌 Le serveur va écouter sur 0.0.0.0:${PORT}`);
+
 // ─── MIDDLEWARE ───
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
@@ -36,12 +46,17 @@ app.use('/api/download', require('./routes/download'));
 app.use('/api/actualites', require('./routes/actualites'));
 app.use('/api/paiement', require('./routes/paiement'));
 
+// ✅ Route racine (pour tester + éviter les 404 sur "/")
+app.get('/', (req, res) => {
+  res.json({ status: 'OK', message: 'ASTRONOTE API is alive 🚀' });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'ASTRONOTE API is running 🚀' });
 });
 
-// Error handling (doit rester avant les routes spécifiques ou à la fin, mais avant le listen)
+// Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
@@ -53,22 +68,11 @@ app.use((err, req, res, next) => {
 app.delete('/api/categorieTickets/:id', async (req, res) => {
   try {
     const categorieId = parseInt(req.params.id);
-    
-    // Vérifier qu'aucun ticket n'est associé à cette catégorie (sécurité)
-    const ticketsAssocies = await prisma.ticket.count({
-      where: { categorieId }
-    });
-    
+    const ticketsAssocies = await prisma.ticket.count({ where: { categorieId } });
     if (ticketsAssocies > 0) {
-      return res.status(400).json({ 
-        error: "Impossible de supprimer : des tickets ont déjà été vendus pour cette catégorie." 
-      });
+      return res.status(400).json({ error: "Impossible de supprimer : des tickets ont déjà été vendus pour cette catégorie." });
     }
-
-    await prisma.categorieTicket.delete({
-      where: { id: categorieId }
-    });
-
+    await prisma.categorieTicket.delete({ where: { id: categorieId } });
     res.json({ success: true, message: "Catégorie supprimée avec succès." });
   } catch (error) {
     console.error("Erreur suppression catégorie:", error);
@@ -82,7 +86,6 @@ app.post('/api/tickets/acheter', async (req, res) => {
     const { userId, evenementId, categorieId, quantite } = req.body;
     const qte = parseInt(quantite) || 1;
 
-    // 1. Vérifier la catégorie et les places
     const categorie = await prisma.categorieTicket.findUnique({
       where: { id: parseInt(categorieId) },
       include: { evenement: true }
@@ -95,7 +98,6 @@ app.post('/api/tickets/acheter', async (req, res) => {
       return res.status(400).json({ error: "Pas assez de places disponibles" });
     }
 
-    // 2. Générer les codes uniques et créer les tickets
     const ticketsData = [];
     const transactionId = `TXN-${Date.now()}`;
     
@@ -110,18 +112,12 @@ app.post('/api/tickets/acheter', async (req, res) => {
       });
     }
 
-    // 3. Enregistrer en base de données (Transaction Prisma)
     const result = await prisma.$transaction(async (tx) => {
-      // Créer les tickets
       await tx.ticket.createMany({ data: ticketsData });
-      
-      // Mettre à jour les places vendues
       await tx.categorieTicket.update({
         where: { id: categorie.id },
         data: { placesVendues: { increment: qte } }
       });
-
-      // Récupérer les tickets créés avec les détails
       return await tx.ticket.findMany({
         where: { transactionId },
         include: { evenement: true, categorie: true }
@@ -135,8 +131,7 @@ app.post('/api/tickets/acheter', async (req, res) => {
   }
 });
 
-// ─── DÉMARRAGE DU SERVEUR (MODIFIÉ POUR FLY.IO) ───
-// '0.0.0.0' est OBLIGATOIRE pour que Fly.io puisse router le trafic vers ton conteneur
+// ─── DÉMARRAGE DU SERVEUR (0.0.0.0 + 8080 pour Fly.io) ───
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 ASTRONOTE API running on http://0.0.0.0:${PORT}`);
   console.log(`🌍 Environnement : ${process.env.NODE_ENV || 'development'}`);
