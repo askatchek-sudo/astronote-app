@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { uploadAPI } from '../../lib/api'; // ✅ AJOUT DE uploadAPI
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // ✅ Fonction robuste pour gérer TOUS les formats d'URL d'image
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith('http://') || img.startsWith('https://')) return img;
-  if (img.startsWith('/uploads/')) return `http://localhost:3001${img}`;
-  if (img.includes('/uploads/')) return `http://localhost:3001/${img.replace(/^\//, '')}`;
-  return `http://localhost:3001/uploads/${img}`;
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+  if (img.startsWith('/uploads/')) return `${API_URL}${img}`;
+  if (img.includes('/uploads/')) return `${API_URL}/${img.replace(/^\//, '')}`;
+  return `${API_URL}/uploads/${img}`;
 };
 
 export default function ActualitesAdmin({ showToast }) {
@@ -25,7 +29,8 @@ export default function ActualitesAdmin({ showToast }) {
   const chargerActualites = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:3001/api/actualites/admin', {
+      // ✅ CORRECTION : Utilise API_URL
+      const res = await fetch(`${API_URL}/api/actualites/admin`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
@@ -59,7 +64,8 @@ export default function ActualitesAdmin({ showToast }) {
       const token = localStorage.getItem('token');
 
       if (editId) {
-        const res = await fetch(`http://localhost:3001/api/actualites/${editId}`, {
+        // ✅ CORRECTION : Utilise API_URL
+        const res = await fetch(`${API_URL}/api/actualites/${editId}`, {
           method: 'PUT',
           headers: { 
             'Content-Type': 'application/json',
@@ -69,7 +75,8 @@ export default function ActualitesAdmin({ showToast }) {
         });
         if (res.ok) showToast("✅ Actualité modifiée !", "success");
       } else {
-        const res = await fetch('http://localhost:3001/api/actualites', {
+        // ✅ CORRECTION : Utilise API_URL
+        const res = await fetch(`${API_URL}/api/actualites`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -111,7 +118,8 @@ export default function ActualitesAdmin({ showToast }) {
     if (!window.confirm("Supprimer cette actualité ?")) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3001/api/actualites/${id}`, {
+      // ✅ CORRECTION : Utilise API_URL
+      const res = await fetch(`${API_URL}/api/actualites/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

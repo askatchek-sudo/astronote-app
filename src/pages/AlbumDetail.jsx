@@ -7,11 +7,15 @@ import BoutonFavori from '../components/BoutonFavori';
 import { DownloadIcon, ShareIcon } from '../components/Icons';
 import AudioVisualizer from '../components/AudioVisualizer';
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  if (img.startsWith("/uploads/")) return `http://localhost:3001${img}`;
-  if (img.includes("/uploads/")) return `http://localhost:3001/${img.replace(/^\//, "")}`;
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+  if (img.startsWith("/uploads/")) return `${API_URL}${img}`;
+  if (img.includes("/uploads/")) return `${API_URL}/${img.replace(/^\//, "")}`;
   return null;
 };
 
@@ -145,7 +149,8 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
 
   const construireFile = (source) => source.map(track => ({
     ...track,
-    audioUrl: track.audioUrl?.startsWith('http') ? track.audioUrl : `http://localhost:3001${track.audioUrl}`
+    // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+    audioUrl: track.audioUrl?.startsWith('http') ? track.audioUrl : `${API_URL}${track.audioUrl}`
   }));
 
   const lancerLectureAlbum = (m, sourceListe) => {
@@ -159,7 +164,8 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
     const indexActuel = fileLecture.findIndex(track => track.id === m.id);
     
     if (indexActuel === -1) {
-      setMorceauEnCours({ ...m, audioUrl: m.audioUrl.startsWith('http') ? m.audioUrl : `http://localhost:3001${m.audioUrl}`, playlist: null });
+      // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+      setMorceauEnCours({ ...m, audioUrl: m.audioUrl.startsWith('http') ? m.audioUrl : `${API_URL}${m.audioUrl}`, playlist: null });
       return;
     }
     

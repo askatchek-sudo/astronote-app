@@ -22,21 +22,21 @@ import Merci from './pages/Merci';
 export default function App() {
   const [page, setPage] = useState("accueil");
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const [artistes, setArtistes] = useState([]);
   const [albums, setAlbums] = useState([]);
   const [evenements, setEvenements] = useState([]);
   const [morceaux, setMorceaux] = useState([]);
-  
+
   const [morceauEnCours, setMorceauEnCours] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  
+
   // ✅ États pour la sélection (cruciaux pour la navigation)
   const [artisteSelectionne, setArtisteSelectionne] = useState(null);
   const [albumSelectionne, setAlbumSelectionne] = useState(null);
   const [evenementSelectionne, setEvenementSelectionne] = useState(null);
-  
+
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem("theme");
     if (saved) return saved;
@@ -168,79 +168,84 @@ export default function App() {
       <Nebula />
       <StarsCanvas />
       <div style={{ position: "relative", zIndex: 1 }}>
-        <Navbar 
-          page={page} 
-          setPage={setPage} 
-          currentUser={currentUser} 
-          onOpenAuth={openAuthModal} 
-          artistes={artistes} 
-          morceaux={morceaux} 
-          albums={albums} 
-          evenements={evenements} 
-          setArtisteSelectionne={setArtisteSelectionne} 
-          setAlbumSelectionne={setAlbumSelectionne} 
-          setMorceauEnCours={setMorceauEnCours} 
-          theme={theme} 
-          onToggleTheme={toggleTheme} 
+        <Navbar
+          page={page}
+          setPage={setPage}
+          currentUser={currentUser}
+          onOpenAuth={openAuthModal}
+          artistes={artistes}
+          morceaux={morceaux}
+          albums={albums}
+          evenements={evenements}
+          setArtisteSelectionne={setArtisteSelectionne}
+          setAlbumSelectionne={setAlbumSelectionne}
+          setMorceauEnCours={setMorceauEnCours}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
-        
+
         <main>
           {page === "accueil" && (
-            <Accueil 
-              setPage={setPage} 
-              artistes={artistes} 
-              evenements={evenements} 
-              currentUser={currentUser} 
-              onOpenAuth={openAuthModal} 
-              setArtisteSelectionne={setArtisteSelectionne} 
-              setEvenementSelectionne={setEvenementSelectionne} 
+            <Accueil
+              setPage={setPage}
+              artistes={artistes}
+              evenements={evenements}
+              currentUser={currentUser}
+              onOpenAuth={openAuthModal}
+              setArtisteSelectionne={setArtisteSelectionne}
+              setEvenementSelectionne={setEvenementSelectionne}
             />
           )}
-          
+
           {page === "artistes" && (
-            <Artistes 
-              artistes={artistes} 
-              setPage={setPage} 
-              setArtisteSelectionne={setArtisteSelectionne} 
+            <Artistes
+              artistes={artistes}
+              setPage={setPage}
+              setArtisteSelectionne={setArtisteSelectionne}
             />
           )}
-          
+
           {page === "artiste-detail" && (
-            <ArtisteDetail 
-              artisteId={artisteSelectionne} 
-              artistes={artistes} 
-              morceaux={morceaux} 
-              albums={albums} 
+            <ArtisteDetail
+              artisteId={artisteSelectionne}
+              artistes={artistes}
+              morceaux={morceaux}
+              albums={albums}
               setMorceauEnCours={setMorceauEnCours}
-              morceauEnCours={morceauEnCours} 
-              setPage={setPage} 
-              setAlbumSelectionne={setAlbumSelectionne} 
-              currentUser={currentUser} 
-            />
-          )}
-          
-          {page === "musique" && (
-            <Musique 
-              artistes={artistes} 
-              morceaux={morceaux} 
-              albums={albums} 
-              setMorceauEnCours={setMorceauEnCours} 
               morceauEnCours={morceauEnCours}
-              setPage={setPage} 
-              setAlbumSelectionne={setAlbumSelectionne} 
-              currentUser={currentUser} 
-              onOpenAuth={openAuthModal} 
+              setPage={setPage}
+              setAlbumSelectionne={setAlbumSelectionne}
+              currentUser={currentUser}
             />
           )}
-           page === 'merci' ? <Merci setPage={setPage} currentUser={currentUser} /> :
+
+          {page === "musique" && (
+            <Musique
+              artistes={artistes}
+              morceaux={morceaux}
+              albums={albums}
+              setMorceauEnCours={setMorceauEnCours}
+              morceauEnCours={morceauEnCours}
+              setPage={setPage}
+              setAlbumSelectionne={setAlbumSelectionne}
+              currentUser={currentUser}
+              onOpenAuth={openAuthModal}
+            />
+          )}
+
+          {/* ✅ PAGE MERCI : syntaxe corrigée (avant c'était hors accolades) */}
+          {page === "merci" && (
+            <Merci setPage={setPage} currentUser={currentUser} />
+          )}
+
           {page === "services" && <Services setPage={setPage} />}
           {page === "contact" && <Contact />}
-          
+
           {page === "mon-compte" && (
-            <MonCompte 
-              currentUser={currentUser} 
-              setMorceauEnCours={setMorceauEnCours} 
-              morceauEnCours={morceauEnCours} 
+            <MonCompte
+              currentUser={currentUser}
+              setMorceauEnCours={setMorceauEnCours}
+              morceauEnCours={morceauEnCours}
               onLogout={handleLogout}
               setPage={setPage}
               setAlbumSelectionne={setAlbumSelectionne}
@@ -249,40 +254,40 @@ export default function App() {
               artistes={artistes}
             />
           )}
-          
+
           {page === "album-detail" && (
-            <AlbumDetail 
-              albumId={albumSelectionne} 
-              artistes={artistes} 
-              morceaux={morceaux} 
-              albums={albums} 
+            <AlbumDetail
+              albumId={albumSelectionne}
+              artistes={artistes}
+              morceaux={morceaux}
+              albums={albums}
               setMorceauEnCours={setMorceauEnCours}
-              morceauEnCours={morceauEnCours} 
-              setPage={setPage} 
-              currentUser={currentUser} 
+              morceauEnCours={morceauEnCours}
+              setPage={setPage}
+              currentUser={currentUser}
             />
           )}
-          
+
           {page === "evenement-detail" && (
-            <EvenementDetail 
-              evenementId={evenementSelectionne} 
-              evenements={evenements} 
-              currentUser={currentUser} 
-              onOpenAuth={openAuthModal} 
-              setPage={setPage} 
+            <EvenementDetail
+              evenementId={evenementSelectionne}
+              evenements={evenements}
+              currentUser={currentUser}
+              onOpenAuth={openAuthModal}
+              setPage={setPage}
             />
           )}
         </main>
-        
+
         <Footer setPage={setPage} />
-        
-        <GlobalPlayer 
-          morceau={morceauEnCours} 
-          artistes={artistes} 
-          setMorceauEnCours={setMorceauEnCours} 
-          onClose={() => setMorceauEnCours(null)} 
+
+        <GlobalPlayer
+          morceau={morceauEnCours}
+          artistes={artistes}
+          setMorceauEnCours={setMorceauEnCours}
+          onClose={() => setMorceauEnCours(null)}
         />
-        
+
         {/* ✅ BOUTON ADMIN FLOTTANT : Visible uniquement pour stetw, mick wally, freddy */}
         {(() => {
           const userName = currentUser?.nom?.toLowerCase() || '';
@@ -295,11 +300,11 @@ export default function App() {
             </button>
           </div>
         )}
-        
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          onLoginSuccess={handleLoginSuccess} 
+
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onLoginSuccess={handleLoginSuccess}
         />
       </div>
     </>

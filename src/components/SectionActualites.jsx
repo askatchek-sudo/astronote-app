@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 
-const API_URL = 'http://localhost:3001/api';
+// ✅ CORRECTION : Utilise la variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // ✅ Fonction robuste pour gérer TOUS les formats d'URL d'image
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith('http://') || img.startsWith('https://')) return img;
-  if (img.startsWith('/uploads/')) return `http://localhost:3001${img}`;
-  if (img.includes('/uploads/')) return `http://localhost:3001/${img.replace(/^\//, '')}`;
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+  if (img.startsWith('/uploads/')) return `${API_URL}${img}`;
+  if (img.includes('/uploads/')) return `${API_URL}/${img.replace(/^\//, '')}`;
   // Fallback : si c'est juste un nom de fichier, on suppose qu'il est dans le dossier /uploads/
-  return `http://localhost:3001/uploads/${img}`;
+  return `${API_URL}/uploads/${img}`;
 };
 
 export default function SectionActualites() {
@@ -33,9 +35,10 @@ export default function SectionActualites() {
 
   const chargerDonnees = async () => {
     try {
+      // ✅ CORRECTION : Ajout de '/api' pour être cohérent avec le reste de l'application
       const [actRes, classRes] = await Promise.all([
-        fetch(`${API_URL}/actualites`),
-        fetch(`${API_URL}/actualites/classement`)
+        fetch(`${API_URL}/api/actualites`),
+        fetch(`${API_URL}/api/actualites/classement`)
       ]);
       const actData = await actRes.json();
       const classData = await classRes.json();

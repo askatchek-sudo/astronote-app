@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const ScannerTickets = () => {
   const [code, setCode] = useState("");
   const [resultat, setResultat] = useState(null);
@@ -22,7 +25,8 @@ const ScannerTickets = () => {
     setResultat(null);
 
     try {
-      const res = await fetch("http://localhost:3001/api/evenements/verifier", {
+      // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+      const res = await fetch(`${API_URL}/api/evenements/verifier`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: codeAVerifier })

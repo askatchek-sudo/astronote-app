@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { uploadAPI } from '../../lib/api'; // ✅ AJOUT DE uploadAPI
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const EvenementsAdmin = ({ evenements, setEvenements, showToast }) => {
   const initForm = {
     titre: "",
@@ -78,7 +81,8 @@ const EvenementsAdmin = ({ evenements, setEvenements, showToast }) => {
       };
 
       const token = localStorage.getItem('token');
-      const res = await fetch("http://localhost:3001/api/evenements", {
+      // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+      const res = await fetch(`${API_URL}/api/evenements`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -111,7 +115,8 @@ const EvenementsAdmin = ({ evenements, setEvenements, showToast }) => {
     if (!window.confirm("Supprimer cet événement et tous ses tickets associés ?")) return;
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3001/api/evenements/${id}`, { 
+      // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+      const res = await fetch(`${API_URL}/api/evenements/${id}`, { 
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

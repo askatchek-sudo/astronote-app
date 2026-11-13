@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { morceauxAPI } from '../lib/api';
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
   if (!morceau) return null;
 
@@ -40,8 +43,9 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
   const nomArtiste = artiste?.nom || "Artiste inconnu";
   const imgArtiste = artiste?.img || "🎵";
 
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
   const audioSrc = currentTrack.audioUrl 
-    ? (currentTrack.audioUrl.startsWith("http") ? currentTrack.audioUrl : `http://localhost:3001${currentTrack.audioUrl}`)
+    ? (currentTrack.audioUrl.startsWith("http") ? currentTrack.audioUrl : `${API_URL}${currentTrack.audioUrl}`)
     : "";
 
   useEffect(() => {
@@ -165,7 +169,9 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
   };
 
   const isImageUrl = typeof imgArtiste === 'string' && (imgArtiste.startsWith("http://") || imgArtiste.startsWith("https://") || imgArtiste.startsWith("/uploads/"));
-  const finalImgUrl = isImageUrl && imgArtiste.startsWith("/uploads/") ? `http://localhost:3001${imgArtiste}` : imgArtiste;
+  
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur pour les images
+  const finalImgUrl = isImageUrl && imgArtiste.startsWith("/uploads/") ? `${API_URL}${imgArtiste}` : imgArtiste;
 
   return (
     <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg-elevated)", backdropFilter: "blur(20px)", borderTop: "1px solid rgba(255,255,255,0.1)", padding: "12px 24px", zIndex: 1000, display: "flex", alignItems: "center", gap: 20, boxShadow: "0 -4px 20px rgba(0,0,0,0.5)" }}>

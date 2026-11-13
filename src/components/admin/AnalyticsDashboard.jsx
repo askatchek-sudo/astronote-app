@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const COLORS = ['#7c3aed', '#06b6d4', '#ec4899', '#f59e0b', '#10b981'];
 
 const AnalyticsDashboard = () => {
@@ -17,8 +20,8 @@ const AnalyticsDashboard = () => {
       // ✅ 1. Récupérer le token d'authentification
       const token = localStorage.getItem('token');
       
-      // ✅ 2. L'envoyer dans les headers de la requête
-      const res = await fetch("http://localhost:3001/api/admin/analytics", {
+      // ✅ 2. L'envoyer dans les headers de la requête (CORRIGÉ avec API_URL)
+      const res = await fetch(`${API_URL}/api/admin/analytics`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }

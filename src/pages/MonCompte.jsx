@@ -5,11 +5,15 @@ import BoutonPartage from '../components/BoutonPartage';
 import { ShareIcon, DownloadIcon } from '../components/Icons';
 import AudioVisualizer from '../components/AudioVisualizer';
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  if (img.startsWith("/uploads/")) return `http://localhost:3001${img}`;
-  if (img.includes("/uploads/")) return `http://localhost:3001/${img.replace(/^\//, "")}`;
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+  if (img.startsWith("/uploads/")) return `${API_URL}${img}`;
+  if (img.includes("/uploads/")) return `${API_URL}/${img.replace(/^\//, "")}`;
   return null;
 };
 
@@ -110,12 +114,14 @@ const MonCompte = ({ setMorceauEnCours, morceauEnCours, setPage, setAlbumSelecti
 
   const lireMorceauSimple = (song) => {
     if (!song || !song.audioUrl) return;
-    setMorceauEnCours({ ...song, audioUrl: song.audioUrl.startsWith('http') ? song.audioUrl : `http://localhost:3001${song.audioUrl}`, playlist: null });
+    // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+    setMorceauEnCours({ ...song, audioUrl: song.audioUrl.startsWith('http') ? song.audioUrl : `${API_URL}${song.audioUrl}`, playlist: null });
   };
 
   const lirePlaylist = (playlist, indexDepart = 0) => {
     if (!playlist || playlist.morceaux.length === 0) { alert("Playlist vide !"); return; }
-    const fileLecture = playlist.morceaux.map(pm => ({ ...pm.morceau, audioUrl: pm.morceau.audioUrl?.startsWith('http') ? pm.morceau.audioUrl : `http://localhost:3001${pm.morceau.audioUrl}` }));
+    // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+    const fileLecture = playlist.morceaux.map(pm => ({ ...pm.morceau, audioUrl: pm.morceau.audioUrl?.startsWith('http') ? pm.morceau.audioUrl : `${API_URL}${pm.morceau.audioUrl}` }));
     setMorceauEnCours({ ...fileLecture[indexDepart], playlist: { nom: playlist.nom, file: fileLecture, indexActuel: indexDepart, shuffle: false } });
   };
 

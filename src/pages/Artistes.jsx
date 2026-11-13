@@ -1,11 +1,15 @@
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const Artistes = ({ artistes, setPage, setArtisteSelectionne }) => {
   
   // ✅ FONCTION ROBUSTE : Gère Cloudinary, les uploads locaux et les emojis
   const getImageUrl = (img) => {
     if (!img) return null;
     if (img.startsWith('http://') || img.startsWith('https://')) return img; // Cloudinary ou URL externe
-    if (img.startsWith('/uploads/')) return `http://localhost:3001${img}`; // Ancien chemin local
-    if (img.includes('/uploads/')) return `http://localhost:3001/${img.replace(/^\//, '')}`;
+    // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+    if (img.startsWith('/uploads/')) return `${API_URL}${img}`; // Ancien chemin local
+    if (img.includes('/uploads/')) return `${API_URL}/${img.replace(/^\//, '')}`;
     return null; // Ce n'est pas une URL, c'est un emoji ou du texte
   };
 

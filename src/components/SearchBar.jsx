@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  if (img.startsWith("/uploads/")) return `http://localhost:3001${img}`;
-  if (img.includes("/uploads/")) return `http://localhost:3001/${img.replace(/^\//, "")}`;
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+  if (img.startsWith("/uploads/")) return `${API_URL}${img}`;
+  if (img.includes("/uploads/")) return `${API_URL}/${img.replace(/^\//, "")}`;
   return null;
 };
 
@@ -115,9 +119,10 @@ const SearchBar = ({
         window.scrollTo(0, 0);
         break;
       case "morceau":
+        // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
         const audioUrl = item.data.audioUrl?.startsWith("http")
           ? item.data.audioUrl
-          : `http://localhost:3001${item.data.audioUrl}`;
+          : `${API_URL}${item.data.audioUrl}`;
         setMorceauEnCours({ ...item.data, audioUrl });
         break;
       case "evenement":

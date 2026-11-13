@@ -4,11 +4,15 @@ import AuthModal from "../components/AuthModal";
 import BoutonPartage from "../components/BoutonPartage";
 import { ShareIcon } from '../components/Icons';
 
+// ✅ AJOUT : Variable d'environnement pour la production
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  if (img.startsWith("/uploads/")) return `http://localhost:3001${img}`;
-  if (img.includes("/uploads/")) return `http://localhost:3001/${img.replace(/^\//, "")}`;
+  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
+  if (img.startsWith("/uploads/")) return `${API_URL}${img}`;
+  if (img.includes("/uploads/")) return `${API_URL}/${img.replace(/^\//, "")}`;
   return null;
 };
 
