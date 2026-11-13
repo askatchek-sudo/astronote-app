@@ -6,10 +6,10 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Installer les dépendances en IGNORANT les packages optionnels spécifiques à une plateforme (comme lightningcss-win32)
-RUN npm install --omit=dev --no-optional
+# Installer TOUTES les dépendances (y compris prisma CLI, nécessaire pour "generate")
+RUN npm install
 
-# Générer le client Prisma (indispensable)
+# Générer le client Prisma avec la version 5.x locale (compatible avec ton schema)
 RUN npx prisma generate
 
 # Copier le reste du code source
