@@ -1,15 +1,19 @@
-FROM node:20-alpine
+# Utiliser node:20-slim (beaucoup plus compatible avec Prisma que alpine)
+FROM node:20-slim
 
 WORKDIR /app
+
+# Installer OpenSSL (requis par le moteur Prisma pour les connexions SSL sécurisées)
+RUN apt-get update && apt-get install -y openssl
 
 # Copier les fichiers de dépendances
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Installer TOUTES les dépendances (y compris prisma CLI, nécessaire pour "generate")
+# Installer les dépendances
 RUN npm install
 
-# Générer le client Prisma avec la version 5.x locale (compatible avec ton schema)
+# Générer le client Prisma
 RUN npx prisma generate
 
 # Copier le reste du code source
