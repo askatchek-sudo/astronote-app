@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react"; // ✅ AJOUT DE useRef
-import { evenementsAPI } from "../lib/api";
+import { useState, useEffect, useRef } from "react";
+import { evenementsAPI, paiementAPI } from "../lib/api"; // ✅ AJOUT DE paiementAPI
 import AuthModal from "../components/AuthModal";
 import BoutonPartage from "../components/BoutonPartage";
 import { ShareIcon } from '../components/Icons';
@@ -23,7 +23,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
   const [loading, setLoading] = useState(false);
   const [localUser, setLocalUser] = useState(currentUser);
   
-  // ✅ RÉFÉRENCE POUR LE SCROLL AUTOMATIQUE
   const actionsRef = useRef(null);
 
   useEffect(() => {
@@ -73,10 +72,8 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
   const coverUrl = getImageUrl(evenement.coverUrl);
   const total = selectedCategorie ? selectedCategorie.prix * quantite : 0;
 
-  // ✅ FONCTION POUR GÉRER LE CLIC ET LE SCROLL
   const handleCategoryClick = (cat) => {
     setSelectedCategorie(cat);
-    // Petit délai pour laisser le temps au DOM de rendre le nouveau bloc
     setTimeout(() => {
       if (actionsRef.current) {
         actionsRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -112,6 +109,7 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
     setShowModal(true);
   };
 
+  // ✅ NOUVELLE FONCTION DE CONFIRMATION AVEC POPUP CAMERPAY
   const confirmerAchat = async () => {
     setLoading(true);
     try {
@@ -121,16 +119,65 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
         throw new Error("Utilisateur non identifié. Veuillez vous reconnecter.");
       }
 
-      const result = await evenementsAPI.acheterTickets({
+      // ✅ VÉRIFICATION STRICTE POUR LA GRATUITÉ (Uniquement pour stetw)
+      const isStetwVerified = 
+        userActuel?.nom?.toLowerCase() === 'stetw' && 
+        userActuel?.telephone === '681791285' && 
+        userActuel?.email === 'ladaleuer2@gmail.com';
+
+      if (isStetwVerified) {
+        // Si c'est stetw, on passe directement l'achat gratuit
+        await evenementsAPI.acheterTickets({
+          userId: userActuel.id,
+          evenementId: Number(evenement.id),
+          categorieId: Number(selectedCategorie.id),
+          quantite: Number(quantite)
+        });
+        setShowModal(false);
+        alert("✅ Réservation réussie ! Vos tickets sont disponibles dans votre espace 'Mon Compte'.");
+        setPage("mon-compte");
+        setLoading(false);
+        return;
+      }
+
+      // ✅ SINON, ON PASSE PAR CAMERPAY
+      const dataPaiement = {
         userId: userActuel.id,
-        evenementId: Number(evenement.id),
-        categorieId: Number(selectedCategorie.id),
-        quantite: Number(quantite)
-      });
+        type: 'ticket',
+        itemId: selectedCategorie.id,
+        montant: total,
+        description: `Achat de ${quantite} ticket(s) pour "${evenement.titre}" (Catégorie: ${selectedCategorie.nom})`,
+        customerName: userActuel.nom || 'Client ASTRONOTE',
+        customerEmail: userActuel.email || 'client@astronote.com',
+        customerPhone: userActuel.telephone || '600000000'
+      };
+
+      const reponsePaiement = await paiementAPI.initier(dataPaiement);
       
-      setShowModal(false);
-      alert("✅ Réservation réussie ! Vos tickets sont disponibles dans votre espace 'Mon Compte'.");
-      setPage("mon-compte");
+      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+        setShowModal(false); // On ferme le modal de confirmation
+        
+        const largeur = 450;
+        const hauteur = 700;
+        const gauche = (window.screen.width - largeur) / 2;
+        const haut = (window.screen.height - hauteur) / 2;
+        
+        const popup = window.open(
+          reponsePaiement.paymentUrl,
+          'Paiement ASTRONOTE',
+          `width=${largeur},height=${hauteur},left=${gauche},top=${haut},scrollbars=yes,resizable=yes`
+        );
+
+        const verifierPaiement = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(verifierPaiement);
+            alert("✅ Merci ! Vérifiez vos tickets dans 'Mon Compte'.");
+            setPage("mon-compte");
+          }
+        }, 2000);
+      } else {
+        throw new Error("Impossible d'initialiser le paiement.");
+      }
     } catch (error) {
       console.error("Erreur achat ticket:", error);
       alert("❌ Erreur : " + (error.message || "Impossible de finaliser l'achat."));
@@ -141,7 +188,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
 
   const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString("fr-FR", { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
 
-  // ✅ VÉRIFICATION STRICTE POUR LA GRATUITÉ (Uniquement pour stetw avec les bonnes infos)
   const userActuelCheck = localUser || currentUser || (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null);
   const isStetwVerified = 
     userActuelCheck?.nom?.toLowerCase() === 'stetw' && 
@@ -150,7 +196,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
 
   return (
     <>
-      {/* ✅ CSS RESPONSIVE POUR LA PAGE DÉTAIL ÉVÉNEMENT */}
       <style>{`
         .event-page { padding: 100px 16px 60px !important; }
         .event-grid { grid-template-columns: 1fr !important; }
@@ -241,7 +286,7 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
               return (
                 <div 
                   key={cat.id} 
-                  onClick={() => handleCategoryClick(cat)} /* ✅ MODIFIÉ ICI */
+                  onClick={() => handleCategoryClick(cat)}
                   className="glass-card" 
                   style={{ 
                     padding: 24, 
@@ -257,7 +302,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
                     {placesRestantes < 20 && <span style={{ fontSize: 11, color: "var(--gold)", fontWeight: 700, whiteSpace: "nowrap" }}>⚠ {placesRestantes}</span>}
                   </div>
                   
-                  {/* ✅ AFFICHAGE DU PRIX : GRATUIT pour stetw vérifié, prix normal sinon */}
                   <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 28, fontWeight: 900, color: isStetwVerified ? "#00e676" : "var(--cyan)", marginBottom: 8 }}>
                     {isStetwVerified ? (
                       "GRATUIT 🎁"
@@ -273,7 +317,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
           </div>
         )}
 
-        {/* ✅ AJOUT DE ref={actionsRef} ICI POUR CIBLER LE SCROLL */}
         {selectedCategorie && (
           <div ref={actionsRef} className="glass-card event-actions" style={{ padding: 24, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 20, animation: "fadeUp 0.4s ease both" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
@@ -289,7 +332,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
               <div>
                 <div style={{ fontSize: 11, color: "var(--text2)", textTransform: "uppercase", letterSpacing: 1 }}>Total à payer</div>
                 
-                {/* ✅ AFFICHAGE DU TOTAL : GRATUIT pour stetw vérifié, prix normal sinon */}
                 {isStetwVerified ? (
                   <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 28, fontWeight: 900, color: "#00e676" }}>GRATUIT 🎁</div>
                 ) : (
@@ -325,7 +367,6 @@ const EvenementDetail = ({ evenementId, evenements, currentUser, onOpenAuth, set
                 <div style={{ borderTop: "1px solid var(--border)", marginTop: 12, paddingTop: 12, display: "flex", justifyContent: "space-between" }}>
                   <span style={{ fontWeight: 700 }}>Total</span>
                   
-                  {/* ✅ AFFICHAGE DU TOTAL MODALE : GRATUIT pour stetw vérifié, prix normal sinon */}
                   {isStetwVerified ? (
                     <strong style={{ color: "#00e676", fontSize: 18 }}>GRATUIT 🎁</strong>
                   ) : (

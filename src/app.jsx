@@ -17,6 +17,7 @@ import AlbumDetail from "./pages/AlbumDetail";
 import EvenementDetail from "./pages/EvenementDetail";
 import LoadingScreen from './components/LoadingScreen';
 import Services from "./pages/Services";
+import Merci from './pages/Merci';
 
 export default function App() {
   const [page, setPage] = useState("accueil");
@@ -231,7 +232,7 @@ export default function App() {
               onOpenAuth={openAuthModal} 
             />
           )}
-          
+           page === 'merci' ? <Merci setPage={setPage} currentUser={currentUser} /> :
           {page === "services" && <Services setPage={setPage} />}
           {page === "contact" && <Contact />}
           

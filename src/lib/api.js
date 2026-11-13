@@ -415,5 +415,17 @@ export const uploadAPI = {
   }
 };
 
+// ─── API PAIEMENT (CAMERPAY) ───
+export const paiementAPI = {
+  initier: async (data) => {
+    const res = await fetch(`${API_URL}/paiement/initier`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    return await handleResponse(res);
+  }
+};
+
 // ✅ Alias pour compatibilité
 export const contactAPI = messagesAPI;

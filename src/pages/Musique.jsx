@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { achatsAPI, morceauxAPI } from "../lib/api";
+import { achatsAPI, morceauxAPI, paiementAPI } from "../lib/api"; // ✅ AJOUT DE paiementAPI
 import AuthModal from "../components/AuthModal";
 import BoutonFavori from '../components/BoutonFavori';
 import BoutonPartage from '../components/BoutonPartage';
@@ -69,19 +69,14 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
     return a ? getImageUrl(a.img) || a.img : "🎵";
   };
 
-  // ✅ SÉCURITÉ MAXIMALE : Filtrage AVANT l'envoi au lecteur
   const lancerLecture = (m, sourceListe) => {
     if (!m.audioUrl) return;
-
-    // 1. On ne garde que les morceaux que l'utilisateur a le droit d'écouter
     const listeAccessible = sourceListe.filter(track => {
       const payant = estPayant(track);
       const achete = estDejaAchete(track.id);
       const albumAchete = estAlbumAchete(track);
       return !payant || achete || albumAchete;
     });
-
-    // 2. On construit la playlist uniquement avec cette liste sécurisée
     const fileLecture = construireFile(listeAccessible);
     const indexActuel = fileLecture.findIndex(track => track.id === m.id);
     
@@ -104,20 +99,63 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
     finally { setTelechargementEnCours(null); }
   };
 
+  // ✅ NOUVELLE FONCTION D'ACHAT AVEC POPUP CAMERPAY
   const executerAchat = async (m) => {
+    if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
+    
     try {
-      await achatsAPI.acheterMorceau(m.id);
-      const nouveauxAchats = await achatsAPI.mesMorceaux();
-      setMesAchats(nouveauxAchats);
-      if (m.audioUrl) lancerLecture(m, liste);
+      const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+      
+      const dataPaiement = {
+        userId: userActuel.id,
+        type: 'morceau',
+        itemId: m.id,
+        montant: m.prix || 100,
+        description: `Achat du morceau "${m.titre}" sur ASTRONOTE`,
+        customerName: userActuel.nom || 'Client ASTRONOTE',
+        customerEmail: userActuel.email || 'client@astronote.com',
+        customerPhone: userActuel.telephone || '600000000'
+      };
+
+      const reponsePaiement = await paiementAPI.initier(dataPaiement);
+      
+      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+        const largeur = 450;
+        const hauteur = 700;
+        const gauche = (window.screen.width - largeur) / 2;
+        const haut = (window.screen.height - hauteur) / 2;
+        
+        const popup = window.open(
+          reponsePaiement.paymentUrl,
+          'Paiement ASTRONOTE',
+          `width=${largeur},height=${hauteur},left=${gauche},top=${haut},scrollbars=yes,resizable=yes`
+        );
+
+        const verifierPaiement = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(verifierPaiement);
+            achatsAPI.mesMorceaux()
+              .then(nouveauxAchats => {
+                setMesAchats(nouveauxAchats);
+                const estAchete = nouveauxAchats.some(a => a.morceauId === m.id || (a.morceau && a.morceau.id === m.id));
+                if (estAchete && m.audioUrl) {
+                  lancerLecture(m, liste);
+                }
+              })
+              .catch(console.error);
+          }
+        }, 2000);
+      } else {
+        throw new Error("Impossible d'initialiser le paiement.");
+      }
     } catch (error) {
-      const msg = error.message || "";
-      if (!msg.toLowerCase().includes("déjà")) alert("❌ Erreur : " + (msg || "Impossible de réaliser l'achat."));
+      console.error("Erreur achat morceau:", error);
+      alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
     }
   };
 
   const handleAchatClick = (m) => {
-    if (!currentUser) { setMorceauEnAttente(m); setShowLogin(true); return; }
+    if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
     executerAchat(m);
   };
 
@@ -151,6 +189,7 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
       const cible = morceauEnAttente;
       setMorceauEnAttente(null);
       if (cible.action === 'telecharger') { handleTelecharger(cible); return; }
+      if (cible.action === 'acheter') { executerAchat(cible); return; } // ✅ Gestion de l'achat après connexion
       
       achatsAPI.mesMorceaux().then(nouveauxAchats => {
         setMesAchats(nouveauxAchats);
@@ -172,7 +211,6 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
 
   return (
     <>
-      {/* ✅ CSS RESPONSIVE */}
       <style>{`
         .responsive-page { padding: 100px 16px 60px !important; }
         .responsive-filters { flex-direction: column; align-items: stretch; }
@@ -194,7 +232,6 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
           <p style={{ color: "var(--text2)", fontSize: 16, maxWidth: 500, margin: "16px auto 0" }}>{morceaux.length} titre(s) dans le catalogue ASTRONOTE.</p>
         </div>
 
-        {/* ✅ FILTRES RESPONSIVES (Empilés sur mobile, alignés sur desktop) */}
         <div className="responsive-filters" style={{ display: "flex", gap: 16, marginBottom: 24 }}>
           <input placeholder="🔍 Rechercher un titre ou artiste..." value={recherche} onChange={(e) => setRecherche(e.target.value)} style={inputStyle} />
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -259,7 +296,6 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
                     </div>
                   </div>
 
-                  {/* ✅ ACTIONS : flexWrap permet de passer à la ligne sur mobile si nécessaire */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, position: 'relative', zIndex: 10, flexWrap: "wrap", justifyContent: "flex-end" }} onClick={(e) => e.stopPropagation()}>
                     {peutInteragir && <BoutonFavori morceauId={m.id} currentUser={currentUser} onOpenLogin={() => { setMorceauEnAttente(m); setShowLogin(true); }} />}
                     {peutInteragir && <MenuAjoutPlaylist morceauId={m.id} currentUser={currentUser} onOpenLogin={() => { setMorceauEnAttente(m); setShowLogin(true); }} />}

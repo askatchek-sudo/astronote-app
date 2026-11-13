@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { achatsAPI, morceauxAPI } from "../lib/api";
+import { achatsAPI, morceauxAPI, paiementAPI } from "../lib/api"; // ✅ AJOUT DE paiementAPI
 import AuthModal from "../components/AuthModal";
 import BoutonPartage from '../components/BoutonPartage';
 import BoutonFavori from '../components/BoutonFavori';
@@ -88,7 +88,7 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
     });
   };
 
-  // ✅ CORRECTION : Vérification stricte de la connexion avant l'achat
+  // ✅ NOUVELLE FONCTION D'ACHAT AVEC POPUP CAMERPAY
   const executerAchat = async (m) => {
     if (!currentUser) {
       setMorceauEnAttente({ morceau: m, action: 'acheter' });
@@ -96,15 +96,53 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
       return;
     }
     try {
-      await achatsAPI.acheterMorceau(m.id);
-      const nouveauxAchats = await achatsAPI.mesMorceaux();
-      setMesAchats(nouveauxAchats);
-      if (m.audioUrl) lancerLectureArtiste(m, morceauxArtiste);
-    } catch (error) {
-      const msg = error.message || "";
-      if (!msg.toLowerCase().includes("déjà")) {
-        alert("❌ Erreur : " + (msg || "Impossible de réaliser l'achat."));
+      const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+      
+      const dataPaiement = {
+        userId: userActuel.id,
+        type: 'morceau',
+        itemId: m.id,
+        montant: m.prix || 100,
+        description: `Achat du morceau "${m.titre}" sur ASTRONOTE`,
+        customerName: userActuel.nom || 'Client ASTRONOTE',
+        customerEmail: userActuel.email || 'client@astronote.com',
+        customerPhone: userActuel.telephone || '600000000'
+      };
+
+      const reponsePaiement = await paiementAPI.initier(dataPaiement);
+      
+      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+        const largeur = 450;
+        const hauteur = 700;
+        const gauche = (window.screen.width - largeur) / 2;
+        const haut = (window.screen.height - hauteur) / 2;
+        
+        const popup = window.open(
+          reponsePaiement.paymentUrl,
+          'Paiement ASTRONOTE',
+          `width=${largeur},height=${hauteur},left=${gauche},top=${haut},scrollbars=yes,resizable=yes`
+        );
+
+        const verifierPaiement = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(verifierPaiement);
+            achatsAPI.mesMorceaux()
+              .then(nouveauxAchats => {
+                setMesAchats(nouveauxAchats);
+                const estAchete = nouveauxAchats.some(a => Number(a.morceauId) === Number(m.id) || (a.morceau && Number(a.morceau.id) === Number(m.id)));
+                if (estAchete && m.audioUrl) {
+                  lancerLectureArtiste(m, morceauxArtiste);
+                }
+              })
+              .catch(console.error);
+          }
+        }, 2000);
+      } else {
+        throw new Error("Impossible d'initialiser le paiement.");
       }
+    } catch (error) {
+      console.error("Erreur achat morceau:", error);
+      alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
     }
   };
 
@@ -275,7 +313,6 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
                         estDansAlbumPayant ? (
                           <button onClick={() => { if(typeof setAlbumSelectionne === "function") setAlbumSelectionne(m.albumId); setPage("album-detail"); window.scrollTo(0, 0); }} style={{ padding: "8px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", borderRadius: 20, color: "var(--text)", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>💿 Album</button>
                         ) : (
-                          // ✅ Le bouton d'achat appelle maintenant executerAchat qui contient la vérification de connexion
                           <button onClick={() => executerAchat(m)} style={{ padding: "8px 12px", background: "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.1))", border: "1px solid rgba(245,158,11,0.4)", borderRadius: 20, color: "#f59e0b", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🔒 {m.prix ? `${m.prix} F` : "Acheter"}</button>
                         )
                       ) : m.audioUrl ? (

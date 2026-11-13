@@ -8,7 +8,7 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
+// ─── MIDDLEWARE ───
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
@@ -29,24 +29,26 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/achats', require('./routes/achats'));
 app.use('/api/messages', require('./routes/messages'));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/playlists', require('./routes/playlists'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/favoris', require('./routes/favoris'));
-app.use('/api/morceaux', require('./routes/morceaux'));
 app.use('/api/download', require('./routes/download'));
-app.use('/api/paiements', require('./routes/paiements'));
 app.use('/api/actualites', require('./routes/actualites'));
+app.use('/api/paiement', require('./routes/paiement'));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'ASTRONOTE API is running 🚀' });
 });
 
-// Error handling
+// Error handling (doit rester avant les routes spécifiques ou à la fin, mais avant le listen)
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
+
+// ─── ROUTES SPÉCIFIQUES ───
+
 // Route pour supprimer une catégorie de ticket
 app.delete('/api/categorieTickets/:id', async (req, res) => {
   try {
@@ -74,9 +76,6 @@ app.delete('/api/categorieTickets/:id', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 ASTRONOTE API running on http://localhost:${PORT}`);
-});
 // Route pour acheter des tickets (avec catégorie et quantité)
 app.post('/api/tickets/acheter', async (req, res) => {
   try {
@@ -114,7 +113,7 @@ app.post('/api/tickets/acheter', async (req, res) => {
     // 3. Enregistrer en base de données (Transaction Prisma)
     const result = await prisma.$transaction(async (tx) => {
       // Créer les tickets
-      const ticketsCrees = await tx.ticket.createMany({ data: ticketsData });
+      await tx.ticket.createMany({ data: ticketsData });
       
       // Mettre à jour les places vendues
       await tx.categorieTicket.update({
@@ -134,4 +133,11 @@ app.post('/api/tickets/acheter', async (req, res) => {
     console.error("Erreur achat tickets:", error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// ─── DÉMARRAGE DU SERVEUR (MODIFIÉ POUR FLY.IO) ───
+// '0.0.0.0' est OBLIGATOIRE pour que Fly.io puisse router le trafic vers ton conteneur
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 ASTRONOTE API running on http://0.0.0.0:${PORT}`);
+  console.log(`🌍 Environnement : ${process.env.NODE_ENV || 'development'}`);
 });

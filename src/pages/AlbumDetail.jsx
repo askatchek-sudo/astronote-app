@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { achatsAPI, morceauxAPI, albumsAPI } from "../lib/api";
+// ✅ 1. AJOUT DE paiementAPI ICI
+import { achatsAPI, morceauxAPI, albumsAPI, paiementAPI } from "../lib/api";
 import AuthModal from "../components/AuthModal";
 import BoutonPartage from '../components/BoutonPartage';
 import BoutonFavori from '../components/BoutonFavori';
@@ -63,18 +64,83 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
     finally { setTelechargementEnCours(null); }
   };
 
+  // ✅ 2. FONCTION D'ACHAT MODIFIÉE POUR CAMERPAY (AVEC BYPASS POUR STETW)
   const executerAchatAlbum = async () => {
     if (!currentUser) { setShowLogin(true); return; }
+    
     setAchatAlbumEnCours(true);
     try {
       const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
-      await albumsAPI.acheterAlbum({ albumId: album.id, userId: userActuel.id });
-      const nouveauxAchats = await achatsAPI.mesMorceaux();
-      setMesAchats(nouveauxAchats);
-      alert("✅ Album acheté avec succès ! Tous les titres sont maintenant déblocés.");
+      
+      if (!userActuel || !userActuel.id) {
+        throw new Error("Utilisateur non identifié. Veuillez vous reconnecter.");
+      }
+
+      // ✅ SI C'EST STETW VÉRIFIÉ, ON PASSE DIRECTEMENT (Gratuité totale conservée)
+      if (isStetwVerified) {
+        await albumsAPI.acheterAlbum({ albumId: album.id, userId: userActuel.id });
+        const nouveauxAchats = await achatsAPI.mesMorceaux();
+        setMesAchats(nouveauxAchats);
+        alert("✅ Album obtenu gratuitement ! Tous les titres sont maintenant débloqués.");
+        setAchatAlbumEnCours(false);
+        return;
+      }
+
+      // ✅ SINON, ON PASSE PAR CAMERPAY
+      const dataPaiement = {
+        userId: userActuel.id,
+        type: 'album',
+        itemId: album.id,
+        montant: album.prix,
+        description: `Achat de l'album "${album.titre}" sur ASTRONOTE`,
+        customerName: userActuel.nom || 'Client ASTRONOTE',
+        customerEmail: userActuel.email || 'client@astronote.com',
+        customerPhone: userActuel.telephone || '600000000'
+      };
+
+      const reponsePaiement = await paiementAPI.initier(dataPaiement);
+      
+      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+        // ✅ OUVERTURE DE LA POPUP DE PAIEMENT
+        const largeur = 450;
+        const hauteur = 700;
+        const gauche = (window.screen.width - largeur) / 2;
+        const haut = (window.screen.height - hauteur) / 2;
+        
+        const popup = window.open(
+          reponsePaiement.paymentUrl,
+          'Paiement ASTRONOTE',
+          `width=${largeur},height=${hauteur},left=${gauche},top=${haut},scrollbars=yes,resizable=yes`
+        );
+
+        // ✅ SURVEILLANCE DE LA POPUP (Toutes les 2 secondes)
+        const verifierPaiement = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(verifierPaiement);
+            setAchatAlbumEnCours(false);
+            
+            // Rafraîchir les achats et rediriger vers la page Merci
+            achatsAPI.mesMorceaux()
+              .then(nouveauxAchats => {
+                setMesAchats(nouveauxAchats);
+                setPage('merci'); // 🚀 Redirection vers la page de succès
+              })
+              .catch(err => {
+                console.error("Erreur rafraîchissement achats:", err);
+                setPage('merci');
+              });
+          }
+        }, 2000);
+
+      } else {
+        throw new Error("Impossible d'initialiser le paiement.");
+      }
+
     } catch (error) {
+      console.error("Erreur achat/paiement album:", error);
       alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
-    } finally { setAchatAlbumEnCours(false); }
+      setAchatAlbumEnCours(false);
+    }
   };
 
   const construireFile = (source) => source.map(track => ({
