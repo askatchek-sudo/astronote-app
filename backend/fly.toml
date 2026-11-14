@@ -1,6 +1,9 @@
 app = "astronotextreams"
 primary_region = "ams"
 
+[deploy]
+  release_command = "npx prisma db push --accept-data-loss"
+  
 [build]
   dockerfile = "Dockerfile"
 
