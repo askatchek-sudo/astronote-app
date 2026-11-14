@@ -20,15 +20,15 @@ const handleResponse = async (res) => {
 // ─── API ADMIN ───
 export const adminAPI = {
   getStats: async () => {
-    const res = await fetch(`${API_URL}/admin/stats`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/admin/stats`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   getVentes: async () => {
-    const res = await fetch(`${API_URL}/admin/ventes`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/admin/ventes`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   getMessages: async () => {
-    const res = await fetch(`${API_URL}/admin/messages`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/admin/messages`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   }
 };
@@ -36,7 +36,7 @@ export const adminAPI = {
 // ─── API UTILISATEURS ───
 export const usersAPI = {
   register: async (data) => {
-    const res = await fetch(`${API_URL}/users/register`, {
+    const res = await fetch(`${API_URL}/api/users/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -44,7 +44,7 @@ export const usersAPI = {
     return await handleResponse(res);
   },
   updateProfile: async (data) => {
-    const res = await fetch(`${API_URL}/users/profile`, {
+    const res = await fetch(`${API_URL}/api/users/profile`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data)
@@ -56,7 +56,7 @@ export const usersAPI = {
 // ─── API AUTHENTIFICATION ───
 export const authAPI = {
   login: async (identifier, password) => {
-    const res = await fetch(`${API_URL}/auth/login`, {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, password })
@@ -64,7 +64,7 @@ export const authAPI = {
     return await handleResponse(res);
   },
   me: async () => {
-    const res = await fetch(`${API_URL}/auth/me`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/auth/me`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   }
 };
@@ -72,23 +72,23 @@ export const authAPI = {
 // ─── API ARTISTES ───
 export const artistesAPI = {
   getAll: async () => {
-    const res = await fetch(`${API_URL}/artistes`);
+    const res = await fetch(`${API_URL}/api/artistes`);
     return await handleResponse(res);
   },
   getById: async (id) => {
-    const res = await fetch(`${API_URL}/artistes/${id}`);
+    const res = await fetch(`${API_URL}/api/artistes/${id}`);
     return await handleResponse(res);
   },
   create: async (data) => {
-    const res = await fetch(`${API_URL}/artistes`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/artistes`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   update: async (id, data) => {
-    const res = await fetch(`${API_URL}/artistes/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/artistes/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/artistes/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/artistes/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   }
 };
@@ -96,27 +96,27 @@ export const artistesAPI = {
 // ─── API ALBUMS ───
 export const albumsAPI = {
   getAll: async () => {
-    const res = await fetch(`${API_URL}/albums`);
+    const res = await fetch(`${API_URL}/api/albums`);
     return await handleResponse(res);
   },
   getById: async (id) => {
-    const res = await fetch(`${API_URL}/albums/${id}`);
+    const res = await fetch(`${API_URL}/api/albums/${id}`);
     return await handleResponse(res);
   },
   create: async (data) => {
-    const res = await fetch(`${API_URL}/albums`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/albums`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   update: async (id, data) => {
-    const res = await fetch(`${API_URL}/albums/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/albums/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/albums/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/albums/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   acheterAlbum: async (data) => {
-    const res = await fetch(`${API_URL}/albums/acheter`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/albums/acheter`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   }
 };
@@ -124,28 +124,28 @@ export const albumsAPI = {
 // ─── API MORCEAUX ───
 export const morceauxAPI = {
   getAll: async () => {
-    const res = await fetch(`${API_URL}/morceaux`);
+    const res = await fetch(`${API_URL}/api/morceaux`);
     return await handleResponse(res);
   },
   getById: async (id) => {
-    const res = await fetch(`${API_URL}/morceaux/${id}`);
+    const res = await fetch(`${API_URL}/api/morceaux/${id}`);
     return await handleResponse(res);
   },
   create: async (data) => {
-    const res = await fetch(`${API_URL}/morceaux`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/morceaux`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   update: async (id, data) => {
-    const res = await fetch(`${API_URL}/morceaux/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/morceaux/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/morceaux/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/morceaux/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   incrementStream: async (id) => {
     try {
-      const res = await fetch(`${API_URL}/morceaux/${id}/stream`, { method: 'POST', headers: getAuthHeaders() });
+      const res = await fetch(`${API_URL}/api/morceaux/${id}/stream`, { method: 'POST', headers: getAuthHeaders() });
       return await handleResponse(res);
     } catch (error) {
       console.error("Erreur increment stream frontend:", error);
@@ -154,7 +154,7 @@ export const morceauxAPI = {
   telecharger: async (id) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Vous devez être connecté pour télécharger');
-    const url = `${API_URL}/download/${id}`;
+    const url = `${API_URL}/api/download/${id}`;
     const response = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -180,19 +180,19 @@ export const morceauxAPI = {
 // ─── API ÉVÉNEMENTS ───
 export const evenementsAPI = {
   getAll: async () => {
-    const res = await fetch(`${API_URL}/evenements`);
+    const res = await fetch(`${API_URL}/api/evenements`);
     return await handleResponse(res);
   },
   getById: async (id) => {
-    const res = await fetch(`${API_URL}/evenements/${id}`);
+    const res = await fetch(`${API_URL}/api/evenements/${id}`);
     return await handleResponse(res);
   },
   getCategorieTickets: async (evenementId) => {
-    const res = await fetch(`${API_URL}/evenements/${evenementId}/categories`);
+    const res = await fetch(`${API_URL}/api/evenements/${evenementId}/categories`);
     return await handleResponse(res);
   },
   acheterTickets: async (data) => {
-    const res = await fetch(`${API_URL}/tickets/acheter`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/tickets/acheter`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   }
 };
@@ -200,19 +200,19 @@ export const evenementsAPI = {
 // ─── API ACHATS ───
 export const achatsAPI = {
   mesMorceaux: async () => {
-    const res = await fetch(`${API_URL}/achats/mes-morceaux`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/achats/mes-morceaux`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   mesAlbums: async () => {
-    const res = await fetch(`${API_URL}/achats/mes-albums`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/achats/mes-albums`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   mesTickets: async () => {
-    const res = await fetch(`${API_URL}/achats/mes-tickets`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/achats/mes-tickets`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   acheterMorceau: async (morceauId) => {
-    const res = await fetch(`${API_URL}/achats/acheter-morceau`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ morceauId }) });
+    const res = await fetch(`${API_URL}/api/achats/acheter-morceau`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ morceauId }) });
     return await handleResponse(res);
   }
 };
@@ -220,11 +220,11 @@ export const achatsAPI = {
 // ─── API FAVORIS ───
 export const favorisAPI = {
   get: async () => {
-    const res = await fetch(`${API_URL}/favoris`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/favoris`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   toggle: async (morceauId) => {
-    const res = await fetch(`${API_URL}/favoris/toggle`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ morceauId: parseInt(morceauId) }) });
+    const res = await fetch(`${API_URL}/api/favoris/toggle`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ morceauId: parseInt(morceauId) }) });
     return await handleResponse(res);
   }
 };
@@ -232,23 +232,23 @@ export const favorisAPI = {
 // ─── API PLAYLISTS ───
 export const playlistsAPI = {
   get: async () => {
-    const res = await fetch(`${API_URL}/playlists`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/playlists`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   create: async (data) => {
-    const res = await fetch(`${API_URL}/playlists`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/playlists`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/playlists/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/playlists/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   addMorceau: async (playlistId, morceauId) => {
-    const res = await fetch(`${API_URL}/playlists/${playlistId}/morceaux`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ morceauId: parseInt(morceauId) }) });
+    const res = await fetch(`${API_URL}/api/playlists/${playlistId}/morceaux`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ morceauId: parseInt(morceauId) }) });
     return await handleResponse(res);
   },
   removeMorceau: async (playlistId, morceauId) => {
-    const res = await fetch(`${API_URL}/playlists/${playlistId}/morceaux/${morceauId}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/playlists/${playlistId}/morceaux/${morceauId}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   }
 };
@@ -256,19 +256,19 @@ export const playlistsAPI = {
 // ─── API MESSAGES (CONTACT) ───
 export const messagesAPI = {
   send: async (data) => {
-    const res = await fetch(`${API_URL}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   getAll: async () => {
-    const res = await fetch(`${API_URL}/messages`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/messages`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   markAsRead: async (id) => {
-    const res = await fetch(`${API_URL}/messages/${id}/read`, { method: 'PUT', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/messages/${id}/read`, { method: 'PUT', headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/messages/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/messages/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   }
 };
@@ -276,11 +276,11 @@ export const messagesAPI = {
 // ─── API PAIEMENTS ARTISTES ───
 export const paiementsAPI = {
   getStatsMensuelles: async () => {
-    const res = await fetch(`${API_URL}/paiements/stats-mensuelles`, { headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/paiements/stats-mensuelles`, { headers: getAuthHeaders() });
     return await handleResponse(res);
   },
   create: async (data) => {
-    const res = await fetch(`${API_URL}/paiements`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/paiements`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   }
 };
@@ -293,7 +293,7 @@ export const uploadAPI = {
     const token = localStorage.getItem('token');
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`${API_URL}/upload/image`, { method: 'POST', headers, body: formData });
+    const res = await fetch(`${API_URL}/api/upload/image`, { method: 'POST', headers, body: formData });
     return await handleResponse(res);
   },
   audio: async (file) => {
@@ -302,7 +302,7 @@ export const uploadAPI = {
     const token = localStorage.getItem('token');
     const headers = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await fetch(`${API_URL}/upload/audio`, { method: 'POST', headers, body: formData });
+    const res = await fetch(`${API_URL}/api/upload/audio`, { method: 'POST', headers, body: formData });
     return await handleResponse(res);
   }
 };
@@ -310,27 +310,27 @@ export const uploadAPI = {
 // ─── API PAIEMENT (CAMERPAY) ───
 export const paiementAPI = {
   initier: async (data) => {
-    const res = await fetch(`${API_URL}/paiement/initier`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/paiement/initier`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   }
 };
 
-// ─── API ACTUALITÉS (✅ AJOUTÉ - était manquant) ───
+// ─── API ACTUALITÉS ───
 export const actualitesAPI = {
   getAll: async () => {
-    const res = await fetch(`${API_URL}/actualites`);
+    const res = await fetch(`${API_URL}/api/actualites`);
     return await handleResponse(res);
   },
   getClassement: async () => {
-    const res = await fetch(`${API_URL}/actualites/classement`);
+    const res = await fetch(`${API_URL}/api/actualites/classement`);
     return await handleResponse(res);
   },
   create: async (data) => {
-    const res = await fetch(`${API_URL}/actualites`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
+    const res = await fetch(`${API_URL}/api/actualites`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(data) });
     return await handleResponse(res);
   },
   delete: async (id) => {
-    const res = await fetch(`${API_URL}/actualites/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
+    const res = await fetch(`${API_URL}/api/actualites/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
     return await handleResponse(res);
   }
 };
