@@ -45,6 +45,7 @@ app.use('/api/favoris', require('./routes/favoris'));
 app.use('/api/download', require('./routes/download'));
 app.use('/api/actualites', require('./routes/actualites'));
 app.use('/api/paiement', require('./routes/paiement'));
+app.use('/api/paiements', require('./routes/paiements'));  // ✅ NOUVEAU (Admin Ventes)
 
 // ✅ Route racine (pour tester + éviter les 404 sur "/")
 app.get('/', (req, res) => {
