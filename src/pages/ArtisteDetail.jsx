@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { achatsAPI, morceauxAPI, paiementAPI } from "../lib/api"; // ✅ AJOUT DE paiementAPI
+import { achatsAPI, morceauxAPI, paiementAPI } from "../lib/api";
 import AuthModal from "../components/AuthModal";
 import BoutonPartage from '../components/BoutonPartage';
 import BoutonFavori from '../components/BoutonFavori';
 import { DownloadIcon, ShareIcon } from '../components/Icons';
 import AudioVisualizer from '../components/AudioVisualizer';
 
-// ✅ AJOUT : Variable d'environnement pour la production
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
   if (img.startsWith("/uploads/")) return `${API_URL}${img}`;
   if (img.includes("/uploads/")) return `${API_URL}/${img.replace(/^\//, "")}`;
   return null;
@@ -26,6 +24,9 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
   const [tab, setTab] = useState("morceaux");
   const [mesAchats, setMesAchats] = useState([]);
   const [telechargementEnCours, setTelechargementEnCours] = useState(null);
+  
+  // ✅ NOUVEAU : État pour bloquer les doubles clics sur l'achat
+  const [achatEnCours, setAchatEnCours] = useState(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -67,7 +68,6 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
 
   const construireFile = (source) => source.map(track => ({
     ...track,
-    // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
     audioUrl: track.audioUrl?.startsWith('http') ? track.audioUrl : `${API_URL}${track.audioUrl}`
   }));
 
@@ -83,7 +83,6 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
     const indexActuel = fileLecture.findIndex(track => track.id === m.id);
     
     if (indexActuel === -1) {
-      // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
       setMorceauEnCours({ ...m, audioUrl: m.audioUrl.startsWith('http') ? m.audioUrl : `${API_URL}${m.audioUrl}`, playlist: null });
       return;
     }
@@ -94,13 +93,23 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
     });
   };
 
-  // ✅ NOUVELLE FONCTION D'ACHAT AVEC POPUP CAMERPAY
+  // ✅ FONCTION D'ACHAT MODIFIÉE AVEC PROTECTION ANTI-DOUBLE-CLIC
   const executerAchat = async (m) => {
+    // ✅ VÉRIFICATION : Si un achat est déjà en cours, on bloque
+    if (achatEnCours) {
+      console.log("⚠️ Un achat est déjà en cours, clic ignoré");
+      return;
+    }
+
     if (!currentUser) {
       setMorceauEnAttente({ morceau: m, action: 'acheter' });
       setShowLogin(true);
       return;
     }
+
+    // ✅ BLOCAGE IMMÉDIAT
+    setAchatEnCours(m.id);
+
     try {
       const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
       
@@ -129,6 +138,9 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
           `width=${largeur},height=${hauteur},left=${gauche},top=${haut},scrollbars=yes,resizable=yes`
         );
 
+        // ✅ DÉBLOCAGE DÈS QUE LA POPUP EST OUVERTE
+        setTimeout(() => setAchatEnCours(null), 1000);
+
         const verifierPaiement = setInterval(() => {
           if (popup.closed) {
             clearInterval(verifierPaiement);
@@ -149,6 +161,7 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
     } catch (error) {
       console.error("Erreur achat morceau:", error);
       alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
+      setAchatEnCours(null); // ✅ DÉBLOCAGE EN CAS D'ERREUR
     }
   };
 
@@ -203,6 +216,12 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
         .responsive-img-overlay { background: linear-gradient(0deg, rgba(8,11,24,0.8) 0%, transparent 60%) !important; }
         .responsive-list-item { padding: 12px 16px !important; }
         .responsive-tabs { justify-content: center; }
+        
+        /* ✅ ANIMATION SPINNER POUR L'ACHAT */
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         
         @media (min-width: 768px) {
           .responsive-page { padding: 120px 40px 80px !important; }
@@ -319,7 +338,46 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
                         estDansAlbumPayant ? (
                           <button onClick={() => { if(typeof setAlbumSelectionne === "function") setAlbumSelectionne(m.albumId); setPage("album-detail"); window.scrollTo(0, 0); }} style={{ padding: "8px 12px", background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", borderRadius: 20, color: "var(--text)", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>💿 Album</button>
                         ) : (
-                          <button onClick={() => executerAchat(m)} style={{ padding: "8px 12px", background: "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.1))", border: "1px solid rgba(245,158,11,0.4)", borderRadius: 20, color: "#f59e0b", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>🔒 {m.prix ? `${m.prix} F` : "Acheter"}</button>
+                          // ✅ BOUTON D'ACHAT MODIFIÉ AVEC SPINNER
+                          <button 
+                            onClick={() => executerAchat(m)}
+                            disabled={achatEnCours === m.id}
+                            style={{ 
+                              padding: "8px 12px", 
+                              background: achatEnCours === m.id 
+                                ? "rgba(255,255,255,0.1)" 
+                                : "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.1))", 
+                              border: "1px solid rgba(245,158,11,0.4)", 
+                              borderRadius: 20, 
+                              color: "#f59e0b", 
+                              fontSize: 11, 
+                              cursor: achatEnCours === m.id ? "wait" : "pointer", 
+                              fontWeight: 600,
+                              opacity: achatEnCours === m.id ? 0.6 : 1,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                              minWidth: 80,
+                              justifyContent: "center"
+                            }}
+                          >
+                            {achatEnCours === m.id ? (
+                              <>
+                                <span style={{ 
+                                  display: "inline-block", 
+                                  width: 12, 
+                                  height: 12, 
+                                  border: "2px solid #f59e0b", 
+                                  borderTop: "2px solid transparent", 
+                                  borderRadius: "50%", 
+                                  animation: "spin 0.8s linear infinite" 
+                                }} />
+                                Traitement...
+                              </>
+                            ) : (
+                              <>🔒 {m.prix ? `${m.prix} F` : "Acheter"}</>
+                            )}
+                          </button>
                         )
                       ) : m.audioUrl ? (
                         <button onClick={() => handlePlayClick(m)} style={{ ...iconButtonStyle(estEnCours ? "#fff" : "var(--cyan)", estEnCours ? "var(--cyan)" : "rgba(6,182,212,0.1)", estEnCours ? "var(--cyan)" : "rgba(6,182,212,0.3)"), width: 40, height: 40, fontSize: 18 }} title="Écouter">

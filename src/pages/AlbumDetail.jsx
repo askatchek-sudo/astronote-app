@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-// ✅ 1. AJOUT DE paiementAPI ICI
 import { achatsAPI, morceauxAPI, albumsAPI, paiementAPI } from "../lib/api";
 import AuthModal from "../components/AuthModal";
 import BoutonPartage from '../components/BoutonPartage';
@@ -7,13 +6,11 @@ import BoutonFavori from '../components/BoutonFavori';
 import { DownloadIcon, ShareIcon } from '../components/Icons';
 import AudioVisualizer from '../components/AudioVisualizer';
 
-// ✅ AJOUT : Variable d'environnement pour la production
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
-  // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
   if (img.startsWith("/uploads/")) return `${API_URL}${img}`;
   if (img.includes("/uploads/")) return `${API_URL}/${img.replace(/^\//, "")}`;
   return null;
@@ -26,9 +23,11 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
   const [morceauEnAttente, setMorceauEnAttente] = useState(null);
   const [mesAchats, setMesAchats] = useState([]);
   const [telechargementEnCours, setTelechargementEnCours] = useState(null);
+  
+  // ✅ ÉTATS POUR LA PROTECTION ANTI-DOUBLE-CLIC
   const [achatAlbumEnCours, setAchatAlbumEnCours] = useState(false);
+  const [achatMorceauEnCours, setAchatMorceauEnCours] = useState(null); // Stocke l'ID du morceau
 
-  // ✅ VÉRIFICATION STRICTE POUR LA GRATUITÉ (Uniquement pour stetw avec les bonnes infos)
   const userActuel = currentUser || (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null);
   const isStetwVerified = 
     userActuel?.nom?.toLowerCase() === 'stetw' && 
@@ -68,88 +67,93 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
     finally { setTelechargementEnCours(null); }
   };
 
-  // ✅ 2. FONCTION D'ACHAT MODIFIÉE POUR CAMERPAY (AVEC BYPASS POUR STETW)
+  // ✅ 1. ACHAT DE L'ALBUM ENTIER (Avec anti-double-clic)
   const executerAchatAlbum = async () => {
+    if (achatAlbumEnCours) return; // ✅ BLOCAGE SI DÉJÀ EN COURS
     if (!currentUser) { setShowLogin(true); return; }
     
     setAchatAlbumEnCours(true);
     try {
       const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
-      
-      if (!userActuel || !userActuel.id) {
-        throw new Error("Utilisateur non identifié. Veuillez vous reconnecter.");
-      }
+      if (!userActuel || !userActuel.id) throw new Error("Utilisateur non identifié.");
 
-      // ✅ SI C'EST STETW VÉRIFIÉ, ON PASSE DIRECTEMENT (Gratuité totale conservée)
       if (isStetwVerified) {
         await albumsAPI.acheterAlbum({ albumId: album.id, userId: userActuel.id });
-        const nouveauxAchats = await achatsAPI.mesMorceaux();
-        setMesAchats(nouveauxAchats);
-        alert("✅ Album obtenu gratuitement ! Tous les titres sont maintenant débloqués.");
+        setMesAchats(await achatsAPI.mesMorceaux());
+        alert("✅ Album obtenu gratuitement ! Tous les titres sont débloqués.");
         setAchatAlbumEnCours(false);
         return;
       }
 
-      // ✅ SINON, ON PASSE PAR CAMERPAY
-      const dataPaiement = {
-        userId: userActuel.id,
-        type: 'album',
-        itemId: album.id,
-        montant: album.prix,
-        description: `Achat de l'album "${album.titre}" sur ASTRONOTE`,
-        customerName: userActuel.nom || 'Client ASTRONOTE',
-        customerEmail: userActuel.email || 'client@astronote.com',
+      const reponsePaiement = await paiementAPI.initier({
+        userId: userActuel.id, type: 'album', itemId: album.id, montant: album.prix,
+        description: `Achat de l'album "${album.titre}"`,
+        customerName: userActuel.nom || 'Client', customerEmail: userActuel.email || 'client@astronote.com',
         customerPhone: userActuel.telephone || '600000000'
-      };
-
-      const reponsePaiement = await paiementAPI.initier(dataPaiement);
+      });
       
       if (reponsePaiement.success && reponsePaiement.paymentUrl) {
-        // ✅ OUVERTURE DE LA POPUP DE PAIEMENT
-        const largeur = 450;
-        const hauteur = 700;
-        const gauche = (window.screen.width - largeur) / 2;
-        const haut = (window.screen.height - hauteur) / 2;
+        const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
+        setTimeout(() => setAchatAlbumEnCours(false), 1000); // ✅ DÉBLOCAGE RAPIDE
         
-        const popup = window.open(
-          reponsePaiement.paymentUrl,
-          'Paiement ASTRONOTE',
-          `width=${largeur},height=${hauteur},left=${gauche},top=${haut},scrollbars=yes,resizable=yes`
-        );
-
-        // ✅ SURVEILLANCE DE LA POPUP (Toutes les 2 secondes)
-        const verifierPaiement = setInterval(() => {
+        const verifier = setInterval(() => {
           if (popup.closed) {
-            clearInterval(verifierPaiement);
+            clearInterval(verifier);
             setAchatAlbumEnCours(false);
-            
-            // Rafraîchir les achats et rediriger vers la page Merci
-            achatsAPI.mesMorceaux()
-              .then(nouveauxAchats => {
-                setMesAchats(nouveauxAchats);
-                setPage('merci'); // 🚀 Redirection vers la page de succès
-              })
-              .catch(err => {
-                console.error("Erreur rafraîchissement achats:", err);
-                setPage('merci');
-              });
+            achatsAPI.mesMorceaux().then(setMesAchats).then(() => setPage('merci')).catch(() => setPage('merci'));
           }
         }, 2000);
-
       } else {
         throw new Error("Impossible d'initialiser le paiement.");
       }
-
     } catch (error) {
-      console.error("Erreur achat/paiement album:", error);
       alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
-      setAchatAlbumEnCours(false);
+      setAchatAlbumEnCours(false); // ✅ DÉBLOCAGE EN CAS D'ERREUR
+    }
+  };
+
+  // ✅ 2. ACHAT D'UN TITRE À L'UNITÉ (Pour les albums gratuits avec sons payants)
+  const handleAchatMorceau = async (m) => {
+    if (achatMorceauEnCours === m.id) return; // ✅ BLOCAGE SI DÉJÀ EN COURS
+    if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
+
+    setAchatMorceauEnCours(m.id);
+    try {
+      const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+      const reponsePaiement = await paiementAPI.initier({
+        userId: userActuel.id, type: 'morceau', itemId: m.id, montant: m.prix || 100,
+        description: `Achat du morceau "${m.titre}"`,
+        customerName: userActuel.nom || 'Client', customerEmail: userActuel.email || 'client@astronote.com',
+        customerPhone: userActuel.telephone || '600000000'
+      });
+
+      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+        const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
+        setTimeout(() => setAchatMorceauEnCours(null), 1000); // ✅ DÉBLOCAGE RAPIDE
+
+        const verifier = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(verifier);
+            setAchatMorceauEnCours(null);
+            const nouveauxAchats = await achatsAPI.mesMorceaux();
+            setMesAchats(nouveauxAchats);
+            // Si acheté, on lance la lecture
+            if (nouveauxAchats.some(a => a.morceauId === m.id || (a.morceau && a.morceau.id === m.id))) {
+              lancerLectureAlbum(m, morceauxAlbum);
+            }
+          }
+        }, 2000);
+      } else {
+        throw new Error("Impossible d'initialiser le paiement.");
+      }
+    } catch (error) {
+      alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
+      setAchatMorceauEnCours(null); // ✅ DÉBLOCAGE EN CAS D'ERREUR
     }
   };
 
   const construireFile = (source) => source.map(track => ({
     ...track,
-    // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
     audioUrl: track.audioUrl?.startsWith('http') ? track.audioUrl : `${API_URL}${track.audioUrl}`
   }));
 
@@ -164,11 +168,9 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
     const indexActuel = fileLecture.findIndex(track => track.id === m.id);
     
     if (indexActuel === -1) {
-      // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur
       setMorceauEnCours({ ...m, audioUrl: m.audioUrl.startsWith('http') ? m.audioUrl : `${API_URL}${m.audioUrl}`, playlist: null });
       return;
     }
-    
     setMorceauEnCours({ 
       ...fileLecture[indexActuel], 
       playlist: { nom: `Album: ${album.titre}`, file: fileLecture, indexActuel, shuffle: false } 
@@ -192,6 +194,7 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
       const { morceau, action } = morceauEnAttente;
       setMorceauEnAttente(null);
       if (action === 'telecharger') handleTelecharger(morceau);
+      else if (action === 'acheter') handleAchatMorceau(morceau);
       else if (action === 'ecouter') lancerLectureAlbum(morceau, morceauxAlbum);
     }
   };
@@ -206,50 +209,22 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
 
   return (
     <>
-      {/* ✅ CSS RESPONSIVE AMÉLIORÉ POUR LA POCHETTE D'ALBUM */}
       <style>{`
         .responsive-page { padding: 100px 16px 60px !important; }
-        
-        /* Mobile : Empilé, centré, pochette carrée naturelle */
-        .responsive-header-grid { 
-          grid-template-columns: 1fr !important; 
-          text-align: center !important; 
-          min-height: auto !important; 
-        }
-        .responsive-header-img { 
-          width: 220px !important; 
-          height: 220px !important; 
-          margin: 0 auto 24px auto !important; 
-          border-radius: 12px !important; 
-          box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; /* Effet de profondeur naturel */
-        }
-        /* Mobile : Dégradé subtil par le bas pour ne pas assombrir le centre de l'image */
-        .responsive-img-overlay {
-          background: linear-gradient(0deg, rgba(8,11,24,0.9) 0%, transparent 50%) !important;
-        }
-        
+        .responsive-header-grid { grid-template-columns: 1fr !important; text-align: center !important; min-height: auto !important; }
+        .responsive-header-img { width: 220px !important; height: 220px !important; margin: 0 auto 24px auto !important; border-radius: 12px !important; box-shadow: 0 12px 32px rgba(0,0,0,0.4) !important; }
+        .responsive-img-overlay { background: linear-gradient(0deg, rgba(8,11,24,0.9) 0%, transparent 50%) !important; }
         .responsive-list-item { padding: 12px 16px !important; }
         .responsive-banner { flex-direction: column; text-align: center; }
         
-        /* Desktop : Retour à la mise en page originale */
+        /* ✅ ANIMATION SPINNER POUR LES ACHATS */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         @media (min-width: 768px) {
           .responsive-page { padding: 120px 40px 80px !important; }
-          .responsive-header-grid { 
-            grid-template-columns: 280px 1fr !important; 
-            text-align: left !important; 
-            min-height: 280px !important; 
-          }
-          .responsive-header-img { 
-            width: 100% !important; 
-            height: 100% !important; 
-            margin: 0 !important; 
-            border-radius: 0 !important; 
-            box-shadow: none !important;
-          }
-          /* Desktop : Dégradé latéral pour la transition vers le texte */
-          .responsive-img-overlay {
-            background: linear-gradient(90deg, transparent 50%, rgba(8,11,24,0.9) 100%) !important;
-          }
+          .responsive-header-grid { grid-template-columns: 280px 1fr !important; text-align: left !important; min-height: 280px !important; }
+          .responsive-header-img { width: 100% !important; height: 100% !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+          .responsive-img-overlay { background: linear-gradient(90deg, transparent 50%, rgba(8,11,24,0.9) 100%) !important; }
           .responsive-list-item { padding: 12px 24px !important; }
           .responsive-banner { flex-direction: row; text-align: left; }
         }
@@ -260,8 +235,6 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
 
         <div className="glass-card" style={{ overflow: "hidden", marginBottom: 32, animation: "fadeUp 0.6s ease both" }}>
           <div className="responsive-header-grid" style={{ display: "grid", gap: 0 }}>
-            
-            {/* ✅ CONTENEUR D'IMAGE AVEC CLASSE POUR LE DÉGRADÉ ADAPTATIF */}
             <div className="responsive-header-img" style={{ background: isImageUrl ? "#1a1a2e" : "linear-gradient(135deg,var(--accent),var(--pink))", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
               {isImageUrl ? (
                 <img src={coverUrl} alt={album.titre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -281,62 +254,36 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
                      {artiste.nom}
                   </span>
                 )}
-                {album.annee && (
-                  <span style={{ padding: "6px 14px", background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 50, color: "var(--cyan)", fontWeight: 600 }}>📅 {album.annee}</span>
-                )}
-                {album.genre && (
-                  <span style={{ padding: "6px 14px", background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", borderRadius: 50, color: "var(--vert)", fontWeight: 600 }}>🎵 {album.genre}</span>
-                )}
+                {album.annee && <span style={{ padding: "6px 14px", background: "rgba(6,182,212,0.1)", border: "1px solid rgba(6,182,212,0.25)", borderRadius: 50, color: "var(--cyan)", fontWeight: 600 }}>📅 {album.annee}</span>}
+                {album.genre && <span style={{ padding: "6px 14px", background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", borderRadius: 50, color: "var(--vert)", fontWeight: 600 }}>🎵 {album.genre}</span>}
               </div>
 
-              {/* ✅ BANNIÈRE D'ACHAT MODIFIÉE POUR STETW */}
+              {/* ✅ BANNIÈRE D'ACHAT ALBUM (Si l'album est payant et non acheté) */}
               {album.isPayant && !estAlbumAchete && (
-                <div className="responsive-banner" style={{ 
-                  marginBottom: 20, 
-                  padding: 16, 
-                  background: isStetwVerified ? "rgba(0,230,118,0.1)" : "rgba(245,158,11,0.1)", 
-                  border: `1px solid ${isStetwVerified ? "rgba(0,230,118,0.3)" : "rgba(245,158,11,0.3)"}`, 
-                  borderRadius: 12, 
-                  display: "flex", 
-                  alignItems: "center", 
-                  justifyContent: "space-between", 
-                  gap: 12 
-                }}>
+                <div className="responsive-banner" style={{ marginBottom: 20, padding: 16, background: isStetwVerified ? "rgba(0,230,118,0.1)" : "rgba(245,158,11,0.1)", border: `1px solid ${isStetwVerified ? "rgba(0,230,118,0.3)" : "rgba(245,158,11,0.3)"}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div>
-                    <div style={{ fontSize: 12, color: isStetwVerified ? "#00e676" : "#f59e0b", fontWeight: 700, letterSpacing: 1 }}>
-                      {isStetwVerified ? "OFFRE SPÉCIALE VIP" : "ALBUM PAYANT"}
-                    </div>
-                    <div style={{ fontSize: 24, fontFamily: "'Orbitron',sans-serif", fontWeight: 900, color: isStetwVerified ? "#00e676" : "#fff" }}>
-                      {isStetwVerified ? "GRATUIT 🎁" : `${album.prix} FCFA`}
-                    </div>
+                    <div style={{ fontSize: 12, color: isStetwVerified ? "#00e676" : "#f59e0b", fontWeight: 700, letterSpacing: 1 }}>{isStetwVerified ? "OFFRE SPÉCIALE VIP" : "ALBUM PAYANT"}</div>
+                    <div style={{ fontSize: 24, fontFamily: "'Orbitron',sans-serif", fontWeight: 900, color: isStetwVerified ? "#00e676" : "#fff" }}>{isStetwVerified ? "GRATUIT 🎁" : `${album.prix} FCFA`}</div>
                     <div style={{ fontSize: 11, color: "var(--text2)" }}>Débloque tous les titres d'un coup</div>
                   </div>
                   <button 
                     onClick={executerAchatAlbum} 
                     disabled={achatAlbumEnCours} 
                     style={{ 
-                      padding: "12px 24px", 
-                      background: isStetwVerified ? "linear-gradient(135deg, #00e676, #00c853)" : "linear-gradient(135deg, #f59e0b, #d97706)", 
-                      border: "none", 
-                      borderRadius: 8, 
-                      color: "#fff", 
-                      fontSize: 14, 
-                      fontWeight: 700, 
-                      cursor: "pointer", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      gap: 8, 
-                      justifyContent: "center" 
+                      padding: "12px 24px", background: achatAlbumEnCours ? "rgba(255,255,255,0.1)" : (isStetwVerified ? "linear-gradient(135deg, #00e676, #00c853)" : "linear-gradient(135deg, #f59e0b, #d97706)"), 
+                      border: "none", borderRadius: 8, color: "#fff", fontSize: 14, fontWeight: 700, cursor: achatAlbumEnCours ? "wait" : "pointer", display: "flex", alignItems: "center", gap: 8, justifyContent: "center", opacity: achatAlbumEnCours ? 0.6 : 1, minWidth: 160
                     }}
                   >
-                    {achatAlbumEnCours ? "⏳ Traitement..." : (isStetwVerified ? "🎁 Obtenir gratuitement" : "🛒 Acheter l'album")}
+                    {achatAlbumEnCours ? (
+                      <><span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid #fff", borderTop: "2px solid transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Traitement...</>
+                    ) : (isStetwVerified ? "🎁 Obtenir gratuitement" : "🛒 Acheter l'album")}
                   </button>
                 </div>
               )}
               
               {estAlbumAchete && (
                 <div style={{ marginBottom: 20, padding: 12, background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#00e676", fontWeight: 700, fontSize: 14 }}>
-                  ✅ Vous possédez cet album. Tous les titres sont déblocés.
+                  ✅ Vous possédez cet album. Tous les titres sont débloqués.
                 </div>
               )}
 
@@ -360,8 +307,12 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
             </div>
           ) : (
             morceauxAlbum.map((m, i) => {
-              const estBloque = album.isPayant && !estAlbumAchete;
+              // ✅ LOGIQUE PROPRE : Distinction entre "Album bloquant" et "Morceau bloquant"
+              const estBloqueParAlbum = album.isPayant && !estAlbumAchete;
+              const estBloqueParMorceau = estPayant(m) && !estDejaAchete(m.id);
+              const estBloque = estBloqueParAlbum || estBloqueParMorceau;
               const peutInteragir = !estBloque;
+              
               const estEnCours = morceauEnCours && String(morceauEnCours.id) === String(m.id);
 
               return (
@@ -392,7 +343,8 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
                         border: `1px solid ${estBloque ? "rgba(245,158,11,0.4)" : "rgba(0,230,118,0.3)"}`, 
                         color: estBloque ? "#f59e0b" : "var(--vert)" 
                       }}>
-                        {estBloque ? "🔒 Album" : "🎧 Disponible"}
+                        {/* ✅ BADGE DYNAMIQUE : Indique SI c'est l'album ou le morceau qui est verrouillé */}
+                        {estBloqueParAlbum ? "🔒 Album" : (estBloqueParMorceau ? `🔒 ${m.prix ? m.prix + ' F' : 'Payant'}` : "🎧 Disponible")}
                       </span>
                     </div>
                     <div style={{ fontSize: 12, color: estEnCours ? "var(--cyan)" : "var(--text2)", marginTop: 2, display: "flex", alignItems: "center", gap: 8 }}>
@@ -405,7 +357,6 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
                     {peutInteragir ? (
                       <>
                         <BoutonFavori morceauId={m.id} currentUser={currentUser} onOpenLogin={() => { setMorceauEnAttente({ morceau: m, action: 'partager' }); setShowLogin(true); }} />
-                        
                         {m.audioUrl && (
                           <button onClick={() => handleTelecharger(m)} disabled={telechargementEnCours === m.id} style={{ ...iconButtonStyle(telechargementEnCours === m.id ? "var(--text2)" : "var(--vert)", telechargementEnCours === m.id ? "rgba(255,255,255,0.05)" : "rgba(0,230,118,0.1)", telechargementEnCours === m.id ? "var(--border)" : "rgba(0,230,118,0.3)"), cursor: telechargementEnCours === m.id ? "wait" : "pointer" }} title="Télécharger">
                             {telechargementEnCours === m.id ? <span style={{ fontSize: 14 }}>⏳</span> : <DownloadIcon size={16} />}
@@ -420,7 +371,27 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
                         ) : <span style={{ fontSize: 12, color: "var(--text2)", opacity: 0.5, width: 40, textAlign: "center" }}>—</span>}
                       </>
                     ) : (
-                      <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text2)", opacity: 0.5, cursor: "not-allowed" }} title="Achetez l'album pour débloquer ce titre">🔒</div>
+                      // ✅ SI BLOQUÉ : On affiche soit un cadenas (si c'est l'album qui bloque), soit un bouton d'achat (si c'est juste le morceau qui est payant dans un album gratuit)
+                      estBloqueParAlbum ? (
+                        <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text2)", opacity: 0.5, cursor: "not-allowed" }} title="Achetez l'album pour débloquer ce titre">🔒</div>
+                      ) : (
+                        <button 
+                          onClick={() => handleAchatMorceau(m)}
+                          disabled={achatMorceauEnCours === m.id}
+                          style={{ 
+                            padding: "8px 12px", background: achatMorceauEnCours === m.id ? "rgba(255,255,255,0.1)" : "linear-gradient(135deg,rgba(245,158,11,0.2),rgba(245,158,11,0.1))", 
+                            border: "1px solid rgba(245,158,11,0.4)", borderRadius: 20, color: "#f59e0b", fontSize: 11, 
+                            cursor: achatMorceauEnCours === m.id ? "wait" : "pointer", fontWeight: 600,
+                            display: "flex", alignItems: "center", gap: 6, opacity: achatMorceauEnCours === m.id ? 0.6 : 1
+                          }}
+                        >
+                          {achatMorceauEnCours === m.id ? (
+                            <><span style={{ display: "inline-block", width: 12, height: 12, border: "2px solid #f59e0b", borderTop: "2px solid transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /> Traitement...</>
+                          ) : (
+                            <>🔒 {m.prix ? `${m.prix} F` : "Acheter"}</>
+                          )}
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
