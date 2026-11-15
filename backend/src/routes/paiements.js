@@ -6,16 +6,16 @@ const prisma = new PrismaClient();
 // ─── 1. GET : Stats mensuelles pour l'onglet Ventes ───
 router.get('/stats-mensuelles', async (req, res) => {
   try {
-    // On récupère le mois en cours (format YYYY-MM)
+    // On récupère le mois en cours (format "YYYY-MM", ex: "2024-05")
     const currentMonth = new Date().toISOString().slice(0, 7);
 
-    // On récupère tous les artistes
+    // ✅ CORRECTION : Le modèle s'appelle "Artiste" dans le schéma
     const artistes = await prisma.artiste.findMany({
       select: { id: true, nom: true, telephone: true }
     });
 
-    // On récupère tous les paiements effectués ce mois-ci
-    const paiementsMois = await prisma.paiement.findMany({
+    // ✅ CORRECTION : Le modèle s'appelle "PaiementArtiste" dans le schéma
+    const paiementsMois = await prisma.paiementArtiste.findMany({
       where: { mois: currentMonth },
       include: { artiste: true }
     });
@@ -37,7 +37,7 @@ router.get('/stats-mensuelles', async (req, res) => {
     res.json(resultats);
   } catch (error) {
     console.error("Erreur stats mensuelles:", error);
-    res.status(500).json({ error: "Erreur serveur lors du chargement des stats" });
+    res.status(500).json({ error: "Erreur serveur lors du chargement des stats: " + error.message });
   }
 });
 
@@ -53,18 +53,29 @@ router.post('/', async (req, res) => {
     // Si aucun mois n'est passé, on prend le mois en cours
     const moisEnCours = mois || new Date().toISOString().slice(0, 7);
 
-    const nouveauPaiement = await prisma.paiement.create({
+    // ✅ CORRECTION : Utilisation du modèle "paiementArtiste"
+    const nouveauPaiement = await prisma.paiementArtiste.create({
       data: {
         artisteId: parseInt(artisteId),
         montant: parseFloat(montant),
         mois: moisEnCours
+        // "date" et "statut" utilisent les @default() du schema.prisma, donc pas besoin de les envoyer
+      },
+      include: {
+        artiste: {
+          select: { nom: true }
+        }
       }
     });
 
-    res.status(201).json({ success: true, data: nouveauPaiement });
+    res.status(201).json({ 
+      success: true, 
+      message: "Paiement enregistré avec succès",
+      data: nouveauPaiement 
+    });
   } catch (error) {
     console.error("Erreur création paiement:", error);
-    res.status(500).json({ error: "Erreur lors de l'enregistrement du paiement" });
+    res.status(500).json({ error: "Erreur lors de l'enregistrement du paiement: " + error.message });
   }
 });
 
