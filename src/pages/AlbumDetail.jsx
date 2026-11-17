@@ -113,44 +113,48 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
   };
 
   // ✅ 2. ACHAT D'UN TITRE À L'UNITÉ (Pour les albums gratuits avec sons payants)
-  const handleAchatMorceau = async (m) => {
-    if (achatMorceauEnCours === m.id) return; // ✅ BLOCAGE SI DÉJÀ EN COURS
-    if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
+// ✅ FONCTION CORRIGÉE : Ajout du mot-clé 'async' devant handleAchatMorceau
+const handleAchatMorceau = async (m) => {
+  if (achatMorceauEnCours === m.id) return; // ✅ BLOCAGE SI DÉJÀ EN COURS
+  if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
 
-    setAchatMorceauEnCours(m.id);
-    try {
-      const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
-      const reponsePaiement = await paiementAPI.initier({
-        userId: userActuel.id, type: 'morceau', itemId: m.id, montant: m.prix || 100,
-        description: `Achat du morceau "${m.titre}"`,
-        customerName: userActuel.nom || 'Client', customerEmail: userActuel.email || 'client@astronote.com',
-        customerPhone: userActuel.telephone || '600000000'
-      });
+  setAchatMorceauEnCours(m.id);
+  try {
+    const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+    const reponsePaiement = await paiementAPI.initier({
+      userId: userActuel.id, type: 'morceau', itemId: m.id, montant: m.prix || 100,
+      description: `Achat du morceau "${m.titre}"`,
+      customerName: userActuel.nom || 'Client', customerEmail: userActuel.email || 'client@astronote.com',
+      customerPhone: userActuel.telephone || '600000000'
+    });
 
-      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
-        const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
-        setTimeout(() => setAchatMorceauEnCours(null), 1000); // ✅ DÉBLOCAGE RAPIDE
+    if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+      const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
+      setTimeout(() => setAchatMorceauEnCours(null), 1000); // ✅ DÉBLOCAGE RAPIDE
 
-        const verifier = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(verifier);
-            setAchatMorceauEnCours(null);
-            const nouveauxAchats = await achatsAPI.mesMorceaux();
+      const verifier = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(verifier);
+          setAchatMorceauEnCours(null);
+          // ✅ NOTE : On ne peut pas utiliser 'await' ici car on est dans un setInterval
+          // On utilise .then() à la place
+          achatsAPI.mesMorceaux().then(nouveauxAchats => {
             setMesAchats(nouveauxAchats);
             // Si acheté, on lance la lecture
             if (nouveauxAchats.some(a => a.morceauId === m.id || (a.morceau && a.morceau.id === m.id))) {
               lancerLectureAlbum(m, morceauxAlbum);
             }
-          }
-        }, 2000);
-      } else {
-        throw new Error("Impossible d'initialiser le paiement.");
-      }
-    } catch (error) {
-      alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
-      setAchatMorceauEnCours(null); // ✅ DÉBLOCAGE EN CAS D'ERREUR
+          }).catch(err => console.error("Erreur rafraîchissement achats:", err));
+        }
+      }, 2000);
+    } else {
+      throw new Error("Impossible d'initialiser le paiement.");
     }
-  };
+  } catch (error) {
+    alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
+    setAchatMorceauEnCours(null); // ✅ DÉBLOCAGE EN CAS D'ERREUR
+  }
+}; 
 
   const construireFile = (source) => source.map(track => ({
     ...track,
