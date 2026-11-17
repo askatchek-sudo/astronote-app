@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { SERVICES } from "../data/initialData";
-import { achatsAPI } from "../lib/api";
 import logo from '../assets/logo.png';
 import SectionActualites from '../components/SectionActualites';
 
@@ -23,8 +22,7 @@ const getDateOnly = (dateStr) => {
 };
 
 const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSelectionne, setEvenementSelectionne}) => {
-  // ✅ SUPPRESSION DU STATE DE COMPTEUR PROGRESSIF
-  // On affiche directement les valeurs finales pour un affichage instantané
+  // ✅ AFFICHAGE INSTANTANÉ DES STATS (Plus de compteur progressif)
   const count = { 
     artistes: artistes.length || 6, 
     streams: 13, 
@@ -75,6 +73,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
 
   return (
     <div>
+
       {/* ✅ SECTION ACTUALITÉS : Placée TOUT EN HAUT, juste après le Hero */}
       <SectionActualites />
 
@@ -96,7 +95,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
         </div>
       </section>
 
-      {/* Featured artists - Rendu INSTANTANÉ */}
+      {/* Featured artists - Rendu INSTANTANÉ avec DONNÉES DYNAMIQUES RESTAURÉES */}
       <section style={{ padding: "80px 40px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
@@ -150,14 +149,17 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
                   <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 16 }}>
                     {a.bio.length > 120 ? a.bio.substring(0, 120) + "..." : a.bio}
                   </p>
+                  
+                  {/* ✅ CORRECTION : Restauration des variables dynamiques a.tracks et a.streams */}
                   <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 14, borderTop: "1px solid var(--border)" }}>
                     <span style={{ fontSize: 12, color: "var(--text2)" }}>
-                      <span style={{ color: "var(--cyan)", fontWeight: 600 }}>{a.tracks}</span> titres
+                      <span style={{ color: "var(--cyan)", fontWeight: 600 }}>{a.tracks || 0}</span> titres
                     </span>
                     <span style={{ fontSize: 12, color: "var(--text2)" }}>
-                      <span style={{ color: "var(--cyan)", fontWeight: 600 }}>{a.streams}</span> streams
+                      <span style={{ color: "var(--cyan)", fontWeight: 600 }}>{a.streams || 0}</span> streams
                     </span>
                   </div>
+                  
                   <div style={{ marginTop: 16, textAlign: "center", fontSize: 12, color: "var(--accent2)", fontWeight: 600 }}>
                     Voir la fiche complète →
                   </div>

@@ -13,6 +13,9 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
   const [duration, setDuration] = useState("0:00");
   const [volume, setVolume] = useState(1);
   const audioRef = useRef(null);
+  
+  // ✅ NOUVEAU : État pour détecter si on est sur mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const hasCountedStream = useRef(false);
 
@@ -20,12 +23,18 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(playlist ? playlist.indexActuel : 0);
   const [isShuffle, setIsShuffle] = useState(playlist ? playlist.shuffle : false);
 
+  // ✅ Détection du redimensionnement de la fenêtre pour basculer entre mobile/desktop
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // ✅ CORRECTION ANTI-CRASH : Synchronisation sécurisée de l'index
   useEffect(() => {
     if (morceau && morceau.playlist) {
       const newIndex = morceau.playlist.indexActuel;
       const maxIndex = morceau.playlist.file.length - 1;
-      // Si l'ancien index est plus grand que la nouvelle liste, on revient à 0
       const safeIndex = newIndex > maxIndex ? 0 : newIndex;
       
       setCurrentIndex(safeIndex);
@@ -35,7 +44,7 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
     }
   }, [morceau]);
 
-  // ✅ SÉCURITÉ MAXIMALE : Empêche "Cannot read properties of undefined"
+  // ✅ SÉCURITÉ MAXIMALE
   const safeIndex = playlist && currentIndex >= playlist.file.length ? 0 : (playlist ? currentIndex : 0);
   const currentTrack = playlist ? playlist.file[safeIndex] : morceau;
 
@@ -67,7 +76,7 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
         audioRef.current.currentTime = 0;
       }
     };
-  }, [safeIndex, audioSrc]); // ✅ Dépendance mise à jour
+  }, [safeIndex, audioSrc]); 
 
   useEffect(() => {
     if (currentTrack && audioRef.current) {
@@ -173,53 +182,106 @@ const GlobalPlayer = ({ morceau, artistes, setMorceauEnCours, onClose }) => {
   // ✅ CORRECTION : Utilise API_URL au lieu de localhost en dur pour les images
   const finalImgUrl = isImageUrl && imgArtiste.startsWith("/uploads/") ? `${API_URL}${imgArtiste}` : imgArtiste;
 
+  // ✅ STYLES RESPONSIVES DYNAMIQUES
+  const containerStyle = {
+    position: "fixed", bottom: 0, left: 0, right: 0, 
+    background: "var(--bg-elevated)", backdropFilter: "blur(20px)", 
+    borderTop: "1px solid rgba(255,255,255,0.1)", 
+    padding: isMobile ? "8px 12px" : "12px 24px", 
+    zIndex: 1000, 
+    display: "flex", alignItems: "center", gap: isMobile ? 10 : 20, 
+    boxShadow: "0 -4px 20px rgba(0,0,0,0.5)",
+    flexDirection: isMobile ? "column" : "row" // ✅ Changement majeur pour mobile
+  };
+
+  const infoSectionStyle = {
+    display: "flex", alignItems: "center", gap: 12, 
+    flex: isMobile ? "1 1 auto" : "0 0 250px", // ✅ Flexible sur mobile
+    width: isMobile ? "100%" : "auto",
+    minWidth: 0
+  };
+
+  const controlsSectionStyle = {
+    flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+    width: isMobile ? "100%" : "auto"
+  };
+
+  const actionsSectionStyle = {
+    display: "flex", alignItems: "center", gap: 12, 
+    flex: isMobile ? "1 1 auto" : "0 0 200px", // ✅ Flexible sur mobile
+    justifyContent: isMobile ? "space-between" : "flex-end",
+    width: isMobile ? "100%" : "auto"
+  };
+
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "var(--bg-elevated)", backdropFilter: "blur(20px)", borderTop: "1px solid rgba(255,255,255,0.1)", padding: "12px 24px", zIndex: 1000, display: "flex", alignItems: "center", gap: 20, boxShadow: "0 -4px 20px rgba(0,0,0,0.5)" }}>
+    <div style={containerStyle}>
       {audioSrc && (
         <audio ref={audioRef} src={audioSrc} onTimeUpdate={onTime} onEnded={handleTrackEnded} onLoadedMetadata={onTime} />
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "0 0 250px" }}>
-        <div style={{ width: 48, height: 48, borderRadius: 10, background: isImageUrl ? "#1a1a2e" : "linear-gradient(135deg,var(--accent),var(--cyan))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, flexShrink: 0, overflow: "hidden" }}>
+      {/* SECTION INFO ARTISTE/TITRE */}
+      <div style={infoSectionStyle}>
+        <div style={{ width: isMobile ? 40 : 48, height: isMobile ? 40 : 48, borderRadius: 10, background: isImageUrl ? "#1a1a2e" : "linear-gradient(135deg,var(--accent),var(--cyan))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 20 : 24, flexShrink: 0, overflow: "hidden" }}>
           {isImageUrl ? (
             <img src={finalImgUrl} alt={nomArtiste} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML = '<span style="line-height:1">🎵</span>'; }} />
           ) : <span style={{ lineHeight: 1 }}>{imgArtiste}</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentTrack.titre || "Titre inconnu"}</div>
-          <div style={{ fontSize: 12, color: "var(--accent2)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontWeight: 700, fontSize: isMobile ? 13 : 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{currentTrack.titre || "Titre inconnu"}</div>
+          <div style={{ fontSize: isMobile ? 11 : 12, color: "var(--accent2)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {nomArtiste}
-            {playlist && <span style={{ marginLeft: 8, opacity: 0.7, fontFamily: "'Space Mono', monospace", fontSize: 10 }}>• {safeIndex + 1} / {playlist.file.length}</span>}
+            {playlist && !isMobile && <span style={{ marginLeft: 8, opacity: 0.7, fontFamily: "'Space Mono', monospace", fontSize: 10 }}>• {safeIndex + 1} / {playlist.file.length}</span>}
           </div>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      {/* SECTION CONTRÔLES DE LECTURE */}
+      <div style={controlsSectionStyle}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 16 : 20 }}>
           {playlist && (
-            <button onClick={() => setIsShuffle(!isShuffle)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: isShuffle ? "var(--cyan)" : "var(--text2)", opacity: isShuffle ? 1 : 0.6, transition: "all 0.2s" }}>🔀</button>
+            <button onClick={() => setIsShuffle(!isShuffle)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: isMobile ? 16 : 18, color: isShuffle ? "var(--cyan)" : "var(--text2)", opacity: isShuffle ? 1 : 0.6, transition: "all 0.2s" }}>🔀</button>
           )}
-          <button onClick={handlePrev} disabled={!playlist} style={{ background: "none", border: "none", cursor: playlist ? "pointer" : "default", fontSize: 22, color: playlist ? "var(--text)" : "var(--text2)", opacity: playlist ? 1 : 0.4, transition: "all 0.2s" }}>⏮</button>
-          <button onClick={toggle} disabled={!audioSrc} style={{ width: 44, height: 44, borderRadius: "50%", background: audioSrc ? "linear-gradient(135deg,var(--accent),var(--cyan))" : "#555", border: "none", color: "#fff", fontSize: 20, cursor: audioSrc ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: audioSrc ? "0 4px 12px rgba(124,58,237,0.4)" : "none", transition: "transform 0.1s" }} onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.95)"} onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}>
+          <button onClick={handlePrev} disabled={!playlist} style={{ background: "none", border: "none", cursor: playlist ? "pointer" : "default", fontSize: isMobile ? 20 : 22, color: playlist ? "var(--text)" : "var(--text2)", opacity: playlist ? 1 : 0.4, transition: "all 0.2s" }}>⏮</button>
+          
+          <button onClick={toggle} disabled={!audioSrc} style={{ width: isMobile ? 40 : 44, height: isMobile ? 40 : 44, borderRadius: "50%", background: audioSrc ? "linear-gradient(135deg,var(--accent),var(--cyan))" : "#555", border: "none", color: "#fff", fontSize: isMobile ? 18 : 20, cursor: audioSrc ? "pointer" : "not-allowed", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: audioSrc ? "0 4px 12px rgba(124,58,237,0.4)" : "none", transition: "transform 0.1s" }} onMouseDown={(e) => e.currentTarget.style.transform = "scale(0.95)"} onMouseUp={(e) => e.currentTarget.style.transform = "scale(1)"}>
             {playing ? "⏸" : "▶"}
           </button>
-          <button onClick={handleNext} disabled={!playlist} style={{ background: "none", border: "none", cursor: playlist ? "pointer" : "default", fontSize: 22, color: playlist ? "var(--text)" : "var(--text2)", opacity: playlist ? 1 : 0.4, transition: "all 0.2s" }}>⏭</button>
+          
+          <button onClick={handleNext} disabled={!playlist} style={{ background: "none", border: "none", cursor: playlist ? "pointer" : "default", fontSize: isMobile ? 20 : 22, color: playlist ? "var(--text)" : "var(--text2)", opacity: playlist ? 1 : 0.4, transition: "all 0.2s" }}>⏭</button>
         </div>
+        
         <div style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", maxWidth: 600 }}>
-          <span style={{ fontSize: 11, color: "var(--text2)", fontFamily: "'Space Mono',monospace", width: 40, textAlign: "right" }}>{currentTime}</span>
-          <div onClick={onSeek} style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden", cursor: "pointer", position: "relative" }}>
+          <span style={{ fontSize: isMobile ? 10 : 11, color: "var(--text2)", fontFamily: "'Space Mono',monospace", width: isMobile ? 35 : 40, textAlign: "right" }}>{currentTime}</span>
+          <div onClick={onSeek} style={{ flex: 1, height: isMobile ? 4 : 6, background: "rgba(255,255,255,0.1)", borderRadius: 3, overflow: "hidden", cursor: "pointer", position: "relative" }}>
             <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg,var(--accent),var(--cyan))", borderRadius: 3, transition: "width .1s" }} />
           </div>
-          <span style={{ fontSize: 11, color: "var(--text2)", fontFamily: "'Space Mono',monospace", width: 40 }}>{duration}</span>
+          <span style={{ fontSize: isMobile ? 10 : 11, color: "var(--text2)", fontFamily: "'Space Mono',monospace", width: isMobile ? 35 : 40 }}>{duration}</span>
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "0 0 200px", justifyContent: "flex-end" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 14 }}>🔊</span>
-          <input type="range" min="0" max="1" step="0.01" value={volume} onChange={onVolumeChange} style={{ width: 80, height: 4, accentColor: "var(--cyan)", cursor: "pointer" }} />
-        </div>
-        <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text2)", fontSize: 20, cursor: "pointer", padding: "4px 8px", transition: "color 0.2s" }} onMouseEnter={(e) => e.target.style.color = "var(--pink)"} onMouseLeave={(e) => e.target.style.color = "var(--text2)"}>✕</button>
+      {/* SECTION ACTIONS (VOLUME + FERMETURE) */}
+      <div style={actionsSectionStyle}>
+        {!isMobile && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 14 }}>🔊</span>
+            <input type="range" min="0" max="1" step="0.01" value={volume} onChange={onVolumeChange} style={{ width: 80, height: 4, accentColor: "var(--cyan)", cursor: "pointer" }} />
+          </div>
+        )}
+        
+        {/* ✅ BOUTON DE FERMETURE AMÉLIORÉ POUR MOBILE */}
+        <button onClick={onClose} style={{ 
+          background: isMobile ? "rgba(255,255,255,0.1)" : "none", 
+          border: "none", 
+          color: "var(--text2)", 
+          fontSize: isMobile ? 24 : 20, 
+          cursor: "pointer", 
+          padding: isMobile ? "8px 16px" : "4px 8px", 
+          borderRadius: isMobile ? 8 : 0,
+          transition: "color 0.2s",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }} onMouseEnter={(e) => e.target.style.color = "var(--pink)"} onMouseLeave={(e) => e.target.style.color = "var(--text2)"}>
+          ✕ {isMobile && <span style={{ fontSize: 12, marginLeft: 4 }}>Fermer</span>}
+        </button>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import AudioVisualizer from '../components/AudioVisualizer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-// ✅ SYSTÈME DE PALIERS DE STREAMS (À ajouter en haut du fichier)
+// ✅ SYSTÈME DE PALIERS DE STREAMS
 const getStreamBadge = (streams) => {
   const s = Number(streams) || 0;
   
@@ -18,7 +18,7 @@ const getStreamBadge = (streams) => {
   if (s >= 10000)    return { emoji: '🥉', label: 'Bronze',   color: '#cd7f32', bg: 'rgba(205, 127, 50, 0.1)',  border: 'rgba(205, 127, 50, 0.3)' };
   if (s >= 1000)     return { emoji: '⭐', label: 'Étoile',   color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.1)', border: 'rgba(167, 139, 250, 0.3)' };
   
-  return null; // Pas de badge en dessous de 1000 streams
+  return null;
 };
 
 const getImageUrl = (img) => {
@@ -335,14 +335,10 @@ const ArtisteDetail = ({ artisteId, artistes, morceaux, albums, setMorceauEnCour
                         {peutInteragir && <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", color: "var(--vert)" }}>🎧 Disponible</span>}
                       </div>
                       
-                      {/* ✅ LIGNE MODIFIÉE : Affichage des infos + Badge de palier */}
+                      {/* ✅ LIGNE CORRIGÉE : Affichage des streams + Badge de palier */}
                       <div style={{ fontSize: 12, color: estEnCours ? "var(--cyan)" : "var(--text2)", marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        {m.album && <span style={{ color: "var(--accent2)" }}>{m.album.titre}</span>}
-                        {m.album && m.annee && <span>·</span>}
-                        {m.annee && <span>{m.annee}</span>}
-                        
-                        {/* Séparateur visuel si on affiche un badge */}
-                        {badge && <span style={{ opacity: 0.5 }}>•</span>}
+                        {/* Nombre de streams */}
+                        {m.streams && <span>{m.streams} streams</span>}
                         
                         {/* Badge de palier (s'affiche uniquement si le seuil est atteint) */}
                         {badge && (
