@@ -9,6 +9,19 @@ import AudioVisualizer from '../components/AudioVisualizer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// ✅ SYSTÈME DE PALIERS DE STREAMS (À ajouter en haut du fichier)
+const getStreamBadge = (streams) => {
+  const s = Number(streams) || 0;
+  
+  if (s >= 10000000) return { emoji: '💎', label: 'Diamant', color: '#b9f2ff', bg: 'rgba(185, 242, 255, 0.1)', border: 'rgba(185, 242, 255, 0.3)' };
+  if (s >= 1000000)  return { emoji: '🥇', label: 'Or',       color: '#ffd700', bg: 'rgba(255, 215, 0, 0.1)',   border: 'rgba(255, 215, 0, 0.3)' };
+  if (s >= 100000)   return { emoji: '🥈', label: 'Argent',   color: '#c0c0c0', bg: 'rgba(192, 192, 192, 0.1)', border: 'rgba(192, 192, 192, 0.3)' };
+  if (s >= 10000)    return { emoji: '🥉', label: 'Bronze',   color: '#cd7f32', bg: 'rgba(205, 127, 50, 0.1)',  border: 'rgba(205, 127, 50, 0.3)' };
+  if (s >= 1000)     return { emoji: '⭐', label: 'Étoile',   color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.1)', border: 'rgba(167, 139, 250, 0.3)' };
+  
+  return null; // Pas de badge en dessous de 1000 streams
+};
+
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
@@ -281,6 +294,9 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
               const artisteImg = getArtisteImg(m.artisteId);
               const isImageUrl = artisteImg?.startsWith("http");
               const estEnCours = morceauEnCours && String(morceauEnCours.id) === String(m.id);
+              
+              // ✅ Récupération du badge de palier pour ce morceau
+              const badge = getStreamBadge(m.streams);
 
               return (
                 <div 
@@ -314,9 +330,30 @@ const Musique = ({ artistes, morceaux, albums, setMorceauEnCours, morceauEnCours
                       )}
                       {peutInteragir && <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", color: "var(--vert)" }}>🎧 Disponible</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: estEnCours ? "var(--cyan)" : "var(--accent2)", marginTop: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    
+                    {/* ✅ LIGNE MODIFIÉE : Affichage des streams + Badge de palier */}
+                    <div style={{ fontSize: 12, color: estEnCours ? "var(--cyan)" : "var(--accent2)", marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span>{nomArtiste(m.artisteId)}</span>
                       {m.genre && <span style={{ opacity: 0.7 }}>• {m.genre}</span>}
+                      
+                      {/* Séparateur visuel si on affiche des streams ou un badge */}
+                      {(m.streams || badge) && <span style={{ opacity: 0.5 }}>•</span>}
+                      
+                      {/* Nombre de streams */}
+                      {m.streams && <span>{m.streams} streams</span>}
+                      
+                      {/* Badge de palier (s'affiche uniquement si le seuil est atteint) */}
+                      {badge && (
+                        <span style={{ 
+                          padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                          background: badge.bg,
+                          border: `1px solid ${badge.border}`,
+                          color: badge.color,
+                          display: "inline-flex", alignItems: "center", gap: 4
+                        }}>
+                          {badge.emoji} {badge.label}
+                        </span>
+                      )}
                     </div>
                   </div>
 

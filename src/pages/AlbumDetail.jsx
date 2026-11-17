@@ -8,6 +8,19 @@ import AudioVisualizer from '../components/AudioVisualizer';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+// ✅ SYSTÈME DE PALIERS DE STREAMS (Réutilisable pour Morceaux ET Albums)
+const getStreamBadge = (streams) => {
+  const s = Number(streams) || 0;
+  
+  if (s >= 10000000) return { emoji: '💎', label: 'Diamant', color: '#b9f2ff', bg: 'rgba(185, 242, 255, 0.1)', border: 'rgba(185, 242, 255, 0.3)' };
+  if (s >= 1000000)  return { emoji: '🥇', label: 'Or',       color: '#ffd700', bg: 'rgba(255, 215, 0, 0.1)',   border: 'rgba(255, 215, 0, 0.3)' };
+  if (s >= 100000)   return { emoji: '🥈', label: 'Argent',   color: '#c0c0c0', bg: 'rgba(192, 192, 192, 0.1)', border: 'rgba(192, 192, 192, 0.3)' };
+  if (s >= 10000)    return { emoji: '🥉', label: 'Bronze',   color: '#cd7f32', bg: 'rgba(205, 127, 50, 0.1)',  border: 'rgba(205, 127, 50, 0.3)' };
+  if (s >= 1000)     return { emoji: '⭐', label: 'Étoile',   color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.1)', border: 'rgba(167, 139, 250, 0.3)' };
+  
+  return null;
+};
+
 const getImageUrl = (img) => {
   if (!img) return null;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
@@ -26,7 +39,7 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
   
   // ✅ ÉTATS POUR LA PROTECTION ANTI-DOUBLE-CLIC
   const [achatAlbumEnCours, setAchatAlbumEnCours] = useState(false);
-  const [achatMorceauEnCours, setAchatMorceauEnCours] = useState(null); // Stocke l'ID du morceau
+  const [achatMorceauEnCours, setAchatMorceauEnCours] = useState(null);
 
   const userActuel = currentUser || (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : null);
   const isStetwVerified = 
@@ -53,6 +66,10 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
   const artiste = artistes.find(a => a.id === Number(album.artisteId));
   const morceauxAlbum = morceaux.filter(m => String(m.albumId) === String(album.id));
 
+  // ✅ CALCUL DU TOTAL DES STREAMS DE L'ALBUM POUR LE BADGE GLOBAL
+  const totalStreamsAlbum = morceauxAlbum.reduce((sum, m) => sum + (Number(m.streams) || 0), 0);
+  const albumBadge = getStreamBadge(totalStreamsAlbum);
+
   const maintenant = new Date();
   const estPayant = (m) => !m.isPayant ? false : (!m.expiration ? true : new Date(m.expiration) > maintenant);
   const estDejaAchete = (morceauId) => mesAchats.some(a => a.morceauId === morceauId || (a.morceau && a.morceau.id === morceauId));
@@ -69,7 +86,7 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
 
   // ✅ 1. ACHAT DE L'ALBUM ENTIER (Avec anti-double-clic)
   const executerAchatAlbum = async () => {
-    if (achatAlbumEnCours) return; // ✅ BLOCAGE SI DÉJÀ EN COURS
+    if (achatAlbumEnCours) return;
     if (!currentUser) { setShowLogin(true); return; }
     
     setAchatAlbumEnCours(true);
@@ -94,7 +111,7 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
       
       if (reponsePaiement.success && reponsePaiement.paymentUrl) {
         const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
-        setTimeout(() => setAchatAlbumEnCours(false), 1000); // ✅ DÉBLOCAGE RAPIDE
+        setTimeout(() => setAchatAlbumEnCours(false), 1000);
         
         const verifier = setInterval(() => {
           if (popup.closed) {
@@ -108,53 +125,49 @@ const AlbumDetail = ({ albumId, artistes, morceaux, albums, setMorceauEnCours, m
       }
     } catch (error) {
       alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
-      setAchatAlbumEnCours(false); // ✅ DÉBLOCAGE EN CAS D'ERREUR
+      setAchatAlbumEnCours(false);
     }
   };
 
-  // ✅ 2. ACHAT D'UN TITRE À L'UNITÉ (Pour les albums gratuits avec sons payants)
-// ✅ FONCTION CORRIGÉE : Ajout du mot-clé 'async' devant handleAchatMorceau
-const handleAchatMorceau = async (m) => {
-  if (achatMorceauEnCours === m.id) return; // ✅ BLOCAGE SI DÉJÀ EN COURS
-  if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
+  // ✅ 2. ACHAT D'UN TITRE À L'UNITÉ
+  const handleAchatMorceau = async (m) => {
+    if (achatMorceauEnCours === m.id) return;
+    if (!currentUser) { setMorceauEnAttente({ ...m, action: 'acheter' }); setShowLogin(true); return; }
 
-  setAchatMorceauEnCours(m.id);
-  try {
-    const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
-    const reponsePaiement = await paiementAPI.initier({
-      userId: userActuel.id, type: 'morceau', itemId: m.id, montant: m.prix || 100,
-      description: `Achat du morceau "${m.titre}"`,
-      customerName: userActuel.nom || 'Client', customerEmail: userActuel.email || 'client@astronote.com',
-      customerPhone: userActuel.telephone || '600000000'
-    });
+    setAchatMorceauEnCours(m.id);
+    try {
+      const userActuel = currentUser || JSON.parse(localStorage.getItem('user') || '{}');
+      const reponsePaiement = await paiementAPI.initier({
+        userId: userActuel.id, type: 'morceau', itemId: m.id, montant: m.prix || 100,
+        description: `Achat du morceau "${m.titre}"`,
+        customerName: userActuel.nom || 'Client', customerEmail: userActuel.email || 'client@astronote.com',
+        customerPhone: userActuel.telephone || '600000000'
+      });
 
-    if (reponsePaiement.success && reponsePaiement.paymentUrl) {
-      const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
-      setTimeout(() => setAchatMorceauEnCours(null), 1000); // ✅ DÉBLOCAGE RAPIDE
+      if (reponsePaiement.success && reponsePaiement.paymentUrl) {
+        const popup = window.open(reponsePaiement.paymentUrl, 'Paiement', 'width=450,height=700,left='+(window.screen.width-450)/2+',top='+(window.screen.height-700)/2);
+        setTimeout(() => setAchatMorceauEnCours(null), 1000);
 
-      const verifier = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(verifier);
-          setAchatMorceauEnCours(null);
-          // ✅ NOTE : On ne peut pas utiliser 'await' ici car on est dans un setInterval
-          // On utilise .then() à la place
-          achatsAPI.mesMorceaux().then(nouveauxAchats => {
-            setMesAchats(nouveauxAchats);
-            // Si acheté, on lance la lecture
-            if (nouveauxAchats.some(a => a.morceauId === m.id || (a.morceau && a.morceau.id === m.id))) {
-              lancerLectureAlbum(m, morceauxAlbum);
-            }
-          }).catch(err => console.error("Erreur rafraîchissement achats:", err));
-        }
-      }, 2000);
-    } else {
-      throw new Error("Impossible d'initialiser le paiement.");
+        const verifier = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(verifier);
+            setAchatMorceauEnCours(null);
+            achatsAPI.mesMorceaux().then(nouveauxAchats => {
+              setMesAchats(nouveauxAchats);
+              if (nouveauxAchats.some(a => a.morceauId === m.id || (a.morceau && a.morceau.id === m.id))) {
+                lancerLectureAlbum(m, morceauxAlbum);
+              }
+            }).catch(err => console.error("Erreur rafraîchissement achats:", err));
+          }
+        }, 2000);
+      } else {
+        throw new Error("Impossible d'initialiser le paiement.");
+      }
+    } catch (error) {
+      alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
+      setAchatMorceauEnCours(null);
     }
-  } catch (error) {
-    alert("❌ Erreur : " + (error.message || "Impossible de réaliser l'achat."));
-    setAchatMorceauEnCours(null); // ✅ DÉBLOCAGE EN CAS D'ERREUR
-  }
-}; 
+  }; 
 
   const construireFile = (source) => source.map(track => ({
     ...track,
@@ -221,7 +234,6 @@ const handleAchatMorceau = async (m) => {
         .responsive-list-item { padding: 12px 16px !important; }
         .responsive-banner { flex-direction: column; text-align: center; }
         
-        /* ✅ ANIMATION SPINNER POUR LES ACHATS */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         @media (min-width: 768px) {
@@ -262,7 +274,7 @@ const handleAchatMorceau = async (m) => {
                 {album.genre && <span style={{ padding: "6px 14px", background: "rgba(0,230,118,0.1)", border: "1px solid rgba(0,230,118,0.3)", borderRadius: 50, color: "var(--vert)", fontWeight: 600 }}>🎵 {album.genre}</span>}
               </div>
 
-              {/* ✅ BANNIÈRE D'ACHAT ALBUM (Si l'album est payant et non acheté) */}
+              {/* ✅ BANNIÈRE D'ACHAT ALBUM */}
               {album.isPayant && !estAlbumAchete && (
                 <div className="responsive-banner" style={{ marginBottom: 20, padding: 16, background: isStetwVerified ? "rgba(0,230,118,0.1)" : "rgba(245,158,11,0.1)", border: `1px solid ${isStetwVerified ? "rgba(0,230,118,0.3)" : "rgba(245,158,11,0.3)"}`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                   <div>
@@ -293,9 +305,30 @@ const handleAchatMorceau = async (m) => {
 
               {album.description && <p style={{ fontSize: 14, color: "var(--text2)", lineHeight: 1.7, marginBottom: 24, textAlign: "center" }}>{album.description}</p>}
               
-              <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center" }}>
-                <div style={{ textAlign: "center" }}><div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "var(--cyan)" }}>{morceauxAlbum.length}</div><div style={{ fontSize: 11, color: "var(--text2)", letterSpacing: 2, textTransform: "uppercase" }}>Titres</div></div>
-                <div style={{ textAlign: "center" }}><div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "var(--accent2)" }}>{morceauxAlbum.reduce((total, m) => total + (m.streams || 0), 0)}</div><div style={{ fontSize: 11, color: "var(--text2)", letterSpacing: 2, textTransform: "uppercase" }}>Streams</div></div>
+              {/* ✅ STATS GLOBALES AVEC BADGE D'ALBUM */}
+              <div style={{ display: "flex", gap: 24, flexWrap: "wrap", justifyContent: "center", alignItems: "flex-start" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "var(--cyan)" }}>{morceauxAlbum.length}</div>
+                  <div style={{ fontSize: 11, color: "var(--text2)", letterSpacing: 2, textTransform: "uppercase" }}>Titres</div>
+                </div>
+                
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "var(--accent2)" }}>
+                    {totalStreamsAlbum.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text2)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>Streams</div>
+                  
+                  {/* ✅ NOUVEAU : Badge global de l'album basé sur le total cumulé */}
+                  {albumBadge && (
+                    <span style={{ 
+                      padding: "4px 12px", borderRadius: 20, fontSize: 11, fontWeight: 700,
+                      background: albumBadge.bg, border: `1px solid ${albumBadge.border}`, color: albumBadge.color,
+                      display: "inline-flex", alignItems: "center", gap: 4
+                    }}>
+                      {albumBadge.emoji} Album {albumBadge.label}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -311,13 +344,13 @@ const handleAchatMorceau = async (m) => {
             </div>
           ) : (
             morceauxAlbum.map((m, i) => {
-              // ✅ LOGIQUE PROPRE : Distinction entre "Album bloquant" et "Morceau bloquant"
               const estBloqueParAlbum = album.isPayant && !estAlbumAchete;
               const estBloqueParMorceau = estPayant(m) && !estDejaAchete(m.id);
               const estBloque = estBloqueParAlbum || estBloqueParMorceau;
               const peutInteragir = !estBloque;
               
               const estEnCours = morceauEnCours && String(morceauEnCours.id) === String(m.id);
+              const badge = getStreamBadge(m.streams); // ✅ Badge individuel du morceau
 
               return (
                 <div 
@@ -347,13 +380,26 @@ const handleAchatMorceau = async (m) => {
                         border: `1px solid ${estBloque ? "rgba(245,158,11,0.4)" : "rgba(0,230,118,0.3)"}`, 
                         color: estBloque ? "#f59e0b" : "var(--vert)" 
                       }}>
-                        {/* ✅ BADGE DYNAMIQUE : Indique SI c'est l'album ou le morceau qui est verrouillé */}
                         {estBloqueParAlbum ? "🔒 Album" : (estBloqueParMorceau ? `🔒 ${m.prix ? m.prix + ' F' : 'Payant'}` : "🎧 Disponible")}
                       </span>
                     </div>
-                    <div style={{ fontSize: 12, color: estEnCours ? "var(--cyan)" : "var(--text2)", marginTop: 2, display: "flex", alignItems: "center", gap: 8 }}>
+                    
+                    {/* ✅ AFFICHAGE DES STREAMS INDIVIDUELS + BADGE INDIVIDUEL */}
+                    <div style={{ fontSize: 12, color: estEnCours ? "var(--cyan)" : "var(--text2)", marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       {m.annee && <span>{m.annee} · </span>}
                       {m.streams && <span>{m.streams} streams</span>}
+                      
+                      {badge && (
+                        <span style={{ 
+                          padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700,
+                          background: badge.bg,
+                          border: `1px solid ${badge.border}`,
+                          color: badge.color,
+                          display: "inline-flex", alignItems: "center", gap: 4
+                        }}>
+                          {badge.emoji} {badge.label}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -375,7 +421,6 @@ const handleAchatMorceau = async (m) => {
                         ) : <span style={{ fontSize: 12, color: "var(--text2)", opacity: 0.5, width: 40, textAlign: "center" }}>—</span>}
                       </>
                     ) : (
-                      // ✅ SI BLOQUÉ : On affiche soit un cadenas (si c'est l'album qui bloque), soit un bouton d'achat (si c'est juste le morceau qui est payant dans un album gratuit)
                       estBloqueParAlbum ? (
                         <div style={{ width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text2)", opacity: 0.5, cursor: "not-allowed" }} title="Achetez l'album pour débloquer ce titre">🔒</div>
                       ) : (

@@ -23,24 +23,13 @@ const getDateOnly = (dateStr) => {
 };
 
 const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSelectionne, setEvenementSelectionne}) => {
-  const [count, setCount] = useState({ artistes: 0, streams: 0, labels: 0 });
-
-  useEffect(() => {
-    const targets = { artistes: artistes.length || 6, streams: 13, labels: 150 };
-    const duration = 2000, steps = 60;
-    let step = 0;
-    const iv = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      setCount({
-        artistes: Math.round(targets.artistes * Math.min(progress, 1)),
-        streams: Math.round(targets.streams * Math.min(progress, 1)),
-        labels: Math.round(targets.labels * Math.min(progress, 1)),
-      });
-      if (step >= steps) clearInterval(iv);
-    }, duration / steps);
-    return () => clearInterval(iv);
-  }, [artistes.length]);
+  // ✅ SUPPRESSION DU STATE DE COMPTEUR PROGRESSIF
+  // On affiche directement les valeurs finales pour un affichage instantané
+  const count = { 
+    artistes: artistes.length || 6, 
+    streams: 13, 
+    labels: 150 
+  };
 
   const evenementsTries = [...evenements].sort((a, b) => {
     return getDateOnly(a.date).getTime() - getDateOnly(b.date).getTime();
@@ -86,56 +75,10 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
 
   return (
     <div>
-      {/* Hero */}
-      <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "120px 40px 80px", textAlign: "center", position: "relative" }}>
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 600, height: 600, borderRadius: "50%", border: "1px solid rgba(124,58,237,0.08)", pointerEvents: "none" }}>
-          <div style={{ position: "absolute", top: "50%", left: "50%", width: 480, height: 480, marginTop: -240, marginLeft: -240, borderRadius: "50%", border: "1px solid rgba(6,182,212,0.06)" }} />
-          <div style={{ position: "absolute", width: 8, height: 8, borderRadius: "50%", background: "var(--cyan)", boxShadow: "0 0 10px var(--cyan)", animation: "orbit 8s linear infinite" }} />
-        </div>
-
-        <div style={{ maxWidth: 800, animation: "fadeUp 1s ease both" }}>
-          <div className="section-tag" style={{ marginBottom: 24 }}> Label de Distribution Musicale</div>
-          
-          {/* ✅ Logo + Texte ASTRONOTE alignés horizontalement */}
-          <div style={{ marginBottom: 28, display: "flex", justifyContent: "center", alignItems: "center", gap: 16 }}>
-            <img 
-              src={logo} 
-              alt="ASTRONOTE" 
-              style={{ 
-                height: 80,
-                width: "auto", 
-                animation: "float 4s ease-in-out infinite",
-                filter: "drop-shadow(0 0 20px rgba(6, 182, 212, 0.4))"
-              }} 
-            />
-            <span style={{ 
-              fontFamily: "'Orbitron', sans-serif",
-              fontSize: 36,
-              fontWeight: 900,
-              letterSpacing: 6,
-              background: 'linear-gradient(90deg, var(--accent2), var(--cyan))',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              animation: "fadeUp 1.2s ease both"
-            }}>
-              ASTRONOTE
-            </span>
-          </div>
-
-          <p style={{ fontSize: "clamp(16px,2vw,20px)", color: "var(--text2)", lineHeight: 1.7, maxWidth: 600, margin: "0 auto 40px", fontWeight: 300 }}>
-            Nous propulsons les artistes vers de nouveaux horizons. Distribution mondiale, production d'excellence et stratégie marketing pour faire résonner votre musique à travers l'univers.
-          </p>
-          <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
-            <button className="btn-primary" onClick={() => setPage("distribution")}>🚀 Distribuer ma musique</button>
-            <button className="btn-outline" onClick={() => setPage("artistes")}>Découvrir nos artistes →</button>
-          </div>
-        </div>
-      </section>
-
-      {/* ✅ SECTION ACTUALITÉS : Placée tout en haut, juste après le Hero */}
+      {/* ✅ SECTION ACTUALITÉS : Placée TOUT EN HAUT, juste après le Hero */}
       <SectionActualites />
 
-      {/* Stats */}
+      {/* Stats - Rendu INSTANTANÉ sans animation fadeUp */}
       <section style={{ padding: "60px 40px", position: "relative" }}>
         <div style={{ maxWidth: 900, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 2 }}>
           {[
@@ -144,7 +87,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
             { val: `${count.labels}+`, label: "Plateformes partenaires", icon: "🌍" },
             { val: "5 ans", label: "D'expérience", icon: "⭐" },
           ].map((s, i) => (
-            <div key={i} className="glass-card scanline" style={{ padding: "32px 24px", textAlign: "center", borderRadius: i === 0 ? "16px 0 0 16px" : i === 3 ? "0 16px 16px 0" : "0", animation: `fadeUp 0.8s ${i * 0.15}s ease both` }}>
+            <div key={i} className="glass-card scanline" style={{ padding: "32px 24px", textAlign: "center", borderRadius: i === 0 ? "16px 0 0 16px" : i === 3 ? "0 16px 16px 0" : "0" }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>{s.icon}</div>
               <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: "clamp(28px,4vw,40px)", fontWeight: 900, marginBottom: 6 }} className="glow-text-gold">{s.val}</div>
               <div style={{ fontSize: 13, color: "var(--text2)", letterSpacing: 2, textTransform: "uppercase" }}>{s.label}</div>
@@ -153,7 +96,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
         </div>
       </section>
 
-      {/* Featured artists - CLIQUABLES VERS PAGE DÉTAIL */}
+      {/* Featured artists - Rendu INSTANTANÉ */}
       <section style={{ padding: "80px 40px" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
@@ -169,7 +112,6 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
                   className="glass-card"
                   style={{
                     padding: "28px",
-                    animation: `fadeUp 0.8s ${i * 0.1}s ease both`,
                     cursor: "pointer",
                     transition: "transform 0.2s"
                   }}
@@ -229,7 +171,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
         </div>
       </section>
 
-      {/* Services aperçu */}
+      {/* Services aperçu - Rendu INSTANTANÉ */}
       <section style={{ padding: "80px 40px", background: "linear-gradient(180deg,transparent,rgba(124,58,237,0.05),transparent)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 56 }}>
@@ -238,7 +180,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 20 }}>
             {SERVICES.slice(0, 3).map((s, i) => (
-              <div key={i} className="glass-card" style={{ padding: "28px", display: "flex", gap: 18, animation: `fadeUp 0.8s ${i * 0.1}s ease both` }}>
+              <div key={i} className="glass-card" style={{ padding: "28px", display: "flex", gap: 18 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{s.ic}</div>
                 <div>
                   <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 1, marginBottom: 8 }}>{s.titre}</div>
@@ -253,7 +195,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
         </div>
       </section>
 
-      {/* Événements */}
+      {/* Événements - Rendu INSTANTANÉ */}
       {evenementsTries.length > 0 && (
         <section style={{ padding: "80px 0", background: "linear-gradient(180deg,transparent,rgba(236,72,153,0.04),transparent)" }}>
           <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 40px" }}>
@@ -269,7 +211,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
             {prochainEvent && (() => {
               const coverUrl = getImageUrl(prochainEvent.coverUrl);
               return (
-                <div style={{ marginBottom: 48, animation: "fadeUp 0.8s ease both" }}>
+                <div style={{ marginBottom: 48 }}>
                   <div style={{ position: "relative", width: "100%", height: 550, borderRadius: 20, overflow: "hidden", boxShadow: "0 20px 60px rgba(236,72,153,0.3)", border: "1px solid rgba(236,72,153,0.3)" }}>
                     {coverUrl ? (
                       <img src={coverUrl} alt={prochainEvent.titre} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -336,7 +278,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
                   const dateEv = getDateOnly(ev.date);
                   const estPasse = dateEv < maintenant;
                   return (
-                    <div key={ev.id} className="glass-card" style={{ overflow: "hidden", display: "flex", opacity: estPasse ? 0.55 : 1, animation: `fadeUp 0.6s ${idx * 0.1}s ease both` }}>
+                    <div key={ev.id} className="glass-card" style={{ overflow: "hidden", display: "flex", opacity: estPasse ? 0.55 : 1 }}>
                       <div style={{ width: 120, height: 120, flexShrink: 0, overflow: "hidden", background: "linear-gradient(135deg,rgba(236,72,153,0.2),rgba(124,58,237,0.2))", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         {coverUrl ? (
                           <img src={coverUrl} alt={ev.titre} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -386,7 +328,7 @@ const Accueil = ({ setPage, artistes, evenements = [], onOpenAuth, setArtisteSel
         </section>
       )}
 
-      {/* CTA final */}
+      {/* CTA final - Rendu INSTANTANÉ */}
       <section style={{ padding: "100px 40px", textAlign: "center" }}>
         <div style={{ maxWidth: 700, margin: "0 auto" }}>
           <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg,var(--accent),var(--cyan))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 32px", animation: "float 3s ease-in-out infinite", boxShadow: "0 0 40px var(--glow-v)" }}>✦</div>
